@@ -1,5 +1,5 @@
 import { sql } from "drizzle-orm";
-import type { Db } from "@/lib/db/client";
+import type { DbOrTx } from "@/lib/db/client";
 import { rateLimits } from "@/lib/db/schema";
 
 export type RateLimitResult = { ok: true } | { ok: false; retryAfterSec: number };
@@ -9,7 +9,7 @@ export type RateLimitResult = { ok: true } | { ok: false; retryAfterSec: number 
  * now ≥ windowStart + windowSec. Un solo upsert atomico per richiesta.
  */
 export async function checkRateLimit(
-  db: Db,
+  db: DbOrTx,
   input: { key: string; limit: number; windowSec: number; now: Date },
 ): Promise<RateLimitResult> {
   const { key, limit, windowSec, now } = input;
