@@ -64,6 +64,7 @@ test("proposta accettata su una connessione pending → active senza orario prec
     revealTime: "22:00",
     previousRevealTime: null,
     proposedRevealTime: null,
+    activatedAt: now,
   });
 });
 

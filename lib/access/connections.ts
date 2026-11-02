@@ -2,7 +2,7 @@ import { and, asc, count, eq, inArray, isNull, or } from "drizzle-orm";
 import type { Db, DbOrTx, Tx } from "@/lib/db/client";
 import { connections, lanterns, user } from "@/lib/db/schema";
 import { computeRevealAt } from "@/lib/time/lantern-times";
-import { isAllowedRevealTime } from "@/lib/time/reveal-time";
+import { isAllowedRevealTime, localDateOf, sameLocalDate } from "@/lib/time/reveal-time";
 import { fail, ok, type AccessResult } from "./errors";
 
 type ConnectionRow = typeof connections.$inferSelect;
@@ -168,14 +168,29 @@ export async function acceptProposal(
     if (!c.proposedRevealTime) return fail("invalid_input");
     if (c.proposedBy === userId) return fail("forbidden");
 
-    const change =
-      c.status === "pending"
-        ? { status: "active" as const, revealTime: c.proposedRevealTime }
-        : {
-            previousRevealTime: c.revealTime,
-            revealTime: c.proposedRevealTime,
-            revealTimeChangedAt: now,
-          };
+    let change;
+    if (c.status === "pending") {
+      change = { status: "active" as const, revealTime: c.proposedRevealTime, activatedAt: now };
+    } else {
+      // Un cambio vale dalla sera dopo. Se un altro cambio è stato accettato lo stesso giorno
+      // locale (per almeno uno dei due), stasera vale ancora l'orario di prima di entrambi.
+      const changedAt = c.revealTimeChangedAt;
+      const members = await tx
+        .select({ timezone: user.timezone })
+        .from(user)
+        .where(inArray(user.id, [c.userAId, c.userBId]));
+      const sameDay =
+        changedAt !== null &&
+        members.some((m) => {
+          const tz = m.timezone ?? "UTC";
+          return sameLocalDate(localDateOf(changedAt, tz), localDateOf(now, tz));
+        });
+      change = {
+        previousRevealTime: sameDay ? c.previousRevealTime : c.revealTime,
+        revealTime: c.proposedRevealTime,
+        revealTimeChangedAt: now,
+      };
+    }
     await tx
       .update(connections)
       .set({ ...change, ...NO_PROPOSAL })

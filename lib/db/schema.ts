@@ -44,9 +44,12 @@ export const connections = pgTable(
     proposedBy: text("proposed_by").references(() => user.id, { onDelete: "cascade" }),
     proposedAt: instant("proposed_at"),
     createdAt: instant("created_at").notNull().defaultNow(),
+    /** Quando la connessione è diventata active (orario concordato). */
+    activatedAt: instant("activated_at"),
     endedAt: instant("ended_at"),
   },
   (t) => [
+    index("connections_user_b").on(t.userBId),
     // COLLATE "C": stesso ordine di Array.sort() in JS, qualunque sia la collation del DB.
     check("connections_user_order", sql`${t.userAId} COLLATE "C" < ${t.userBId} COLLATE "C"`),
     uniqueIndex("connections_open_pair")
@@ -55,7 +58,9 @@ export const connections = pgTable(
   ],
 );
 
-export const invites = pgTable("invites", {
+export const invites = pgTable(
+  "invites",
+  {
   id: id(),
   inviterId: userRef("inviter_id"),
   code: text("code").notNull().unique(),
@@ -64,7 +69,9 @@ export const invites = pgTable("invites", {
   acceptedAt: instant("accepted_at"),
   acceptedBy: text("accepted_by").references(() => user.id, { onDelete: "cascade" }),
   createdAt: instant("created_at").notNull().defaultNow(),
-});
+  },
+  (t) => [index("invites_inviter").on(t.inviterId)],
+);
 
 export const lanterns = pgTable(
   "lanterns",
@@ -94,6 +101,7 @@ export const lanterns = pgTable(
   (t) => [
     index("lanterns_recipient_reveal").on(t.recipientId, t.revealAt),
     index("lanterns_connection_created").on(t.connectionId, t.createdAt),
+    index("lanterns_sender").on(t.senderId),
   ],
 );
 

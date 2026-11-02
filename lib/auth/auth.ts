@@ -4,6 +4,7 @@ import { magicLink } from "better-auth/plugins";
 import { nextCookies } from "better-auth/next-js";
 import { db } from "@/lib/db/client";
 import { sendMail } from "@/lib/mail/mailer";
+import { isDemoLoginEnabled } from "./demo";
 
 export const auth = betterAuth({
   database: drizzleAdapter(db, { provider: "pg" }),
@@ -18,7 +19,7 @@ export const auth = betterAuth({
   },
   emailAndPassword: {
     // Il login demo non deve mai essere attivo in produzione.
-    enabled: process.env.DEMO_LOGIN === "true" && process.env.NODE_ENV !== "production",
+    enabled: isDemoLoginEnabled(process.env),
   },
   rateLimit: { enabled: true, storage: "database" },
   plugins: [

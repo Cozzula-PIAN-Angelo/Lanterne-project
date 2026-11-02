@@ -45,40 +45,47 @@ async function createLantern(
   input: { connectionId: string; senderId: string; type: "text" | "thought"; text: string; now: Date },
 ): Promise<AccessResult<LanternView>> {
   const { connectionId, senderId, type, text, now } = input;
-  const [c] = await db.select().from(connections).where(eq(connections.id, connectionId));
-  if (!c || (c.userAId !== senderId && c.userBId !== senderId)) return fail("not_found");
-  if (c.status !== "active" || !c.revealTime) return fail("connection_not_active");
+  // FOR SHARE: una chiusura o un blocco in corso (FOR UPDATE) fa aspettare la creazione.
+  return db.transaction(async (tx) => {
+    const [c] = await tx
+      .select()
+      .from(connections)
+      .where(eq(connections.id, connectionId))
+      .for("share");
+    if (!c || (c.userAId !== senderId && c.userBId !== senderId)) return fail("not_found");
+    if (c.status !== "active" || !c.revealTime) return fail("connection_not_active");
 
-  const recipientId = c.userAId === senderId ? c.userBId : c.userAId;
-  const [sender] = await db.select().from(user).where(eq(user.id, senderId));
-  const [recipient] = await db.select().from(user).where(eq(user.id, recipientId));
-  const recipientTz = recipient.timezone ?? "UTC";
+    const recipientId = c.userAId === senderId ? c.userBId : c.userAId;
+    const [sender] = await tx.select().from(user).where(eq(user.id, senderId));
+    const [recipient] = await tx.select().from(user).where(eq(user.id, recipientId));
+    const recipientTz = recipient.timezone ?? "UTC";
 
-  const revealAt = computeRevealAt(
-    {
-      revealTime: c.revealTime,
-      previousRevealTime: c.previousRevealTime,
-      revealTimeChangedAt: c.revealTimeChangedAt,
-    },
-    recipientTz,
-    now,
-  );
-  const [row] = await db
-    .insert(lanterns)
-    .values({
-      connectionId,
-      senderId,
-      recipientId,
-      type,
-      text,
-      status: "ready",
-      revealAt,
-      expiresAt: computeExpiresAt(revealAt, recipientTz),
-      savable: sender.allowSaving ?? true,
-      createdAt: now,
-    })
-    .returning();
-  return ok(toView(row, now));
+    const revealAt = computeRevealAt(
+      {
+        revealTime: c.revealTime,
+        previousRevealTime: c.previousRevealTime,
+        revealTimeChangedAt: c.revealTimeChangedAt,
+      },
+      recipientTz,
+      now,
+    );
+    const [row] = await tx
+      .insert(lanterns)
+      .values({
+        connectionId,
+        senderId,
+        recipientId,
+        type,
+        text,
+        status: "ready",
+        revealAt,
+        expiresAt: computeExpiresAt(revealAt, recipientTz),
+        savable: sender.allowSaving ?? true,
+        createdAt: now,
+      })
+      .returning();
+    return ok(toView(row, now));
+  });
 }
 
 export async function createTextLantern(
@@ -155,7 +162,13 @@ export async function getChannel(
     const [me] = await db.select({ timezone: user.timezone }).from(user).where(eq(user.id, userId));
     const myTz = me?.timezone ?? "UTC";
     const last = previousOccurrence(connection.revealTime, myTz, now);
-    if (now.getTime() < computeExpiresAt(last, myTz).getTime()) {
+    const [{ activatedAt }] = await db
+      .select({ activatedAt: connections.activatedAt })
+      .from(connections)
+      .where(eq(connections.id, connectionId));
+    // Se la connessione è nata dopo l'apertura di stasera, il partner non ha avuto occasione.
+    const hadChance = !activatedAt || activatedAt.getTime() <= last.getTime();
+    if (hadChance && now.getTime() < computeExpiresAt(last, myTz).getTime()) {
       const received = await db
         .select({ id: lanterns.id })
         .from(lanterns)

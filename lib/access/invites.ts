@@ -55,7 +55,9 @@ export async function createInvite(
 
   const code = randomBytes(16).toString("base64url");
   const expiresAt = new Date(now.getTime() + INVITE_TTL_DAYS * DAY_MS);
-  await db.insert(invites).values({ inviterId: userId, code, proposedRevealTime, expiresAt });
+  await db
+    .insert(invites)
+    .values({ inviterId: userId, code, proposedRevealTime, expiresAt, createdAt: now });
   return ok({ code, expiresAt });
 }
 
@@ -134,7 +136,7 @@ export async function acceptInvite(
     const [userAId, userBId] = [invite.inviterId, userId].sort();
     const values =
       counterProposal === undefined
-        ? { status: "active" as const, revealTime: invite.proposedRevealTime }
+        ? { status: "active" as const, revealTime: invite.proposedRevealTime, activatedAt: now }
         : {
             status: "pending" as const,
             revealTime: null,
@@ -144,7 +146,7 @@ export async function acceptInvite(
           };
     const [connection] = await tx
       .insert(connections)
-      .values({ userAId, userBId, ...values })
+      .values({ userAId, userBId, createdAt: now, ...values })
       .returning({ id: connections.id });
 
     await tx

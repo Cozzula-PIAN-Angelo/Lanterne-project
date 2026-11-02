@@ -1,5 +1,6 @@
 import { beforeEach, describe, expect, test } from "vitest";
-import { eq } from "drizzle-orm";
+import { eq, sql } from "drizzle-orm";
+import { acceptProposal, proposeRevealTime } from "@/lib/access/connections";
 import {
   createTextLantern,
   createThoughtLantern,
@@ -252,5 +253,64 @@ describe("partnerLeftNothing", () => {
   test("pomeriggio a New York, finestra della sera prima scaduta → false", async () => {
     const { marco, conn } = await setup();
     expect(await leftNothing(conn.id, marco.id, "2026-11-02T15:00:00Z")).toBe(false);
+  });
+});
+
+describe("concorrenza e cambi d'orario", () => {
+  test("una chiusura in corso blocca la creazione → connection_not_active", async () => {
+    const { giulia, conn } = await setup();
+    let release!: () => void;
+    const gate = new Promise<void>((r) => (release = r));
+    let markLocked!: () => void;
+    const locked = new Promise<void>((r) => (markLocked = r));
+    const closing = db.transaction(async (tx) => {
+      await tx.execute(sql`SELECT id FROM connections WHERE id = ${conn.id} FOR UPDATE`);
+      await tx.update(connections).set({ status: "ended", endedAt: now }).where(eq(connections.id, conn.id));
+      markLocked();
+      await gate;
+    });
+    await locked;
+    const creating = createTextLantern(db, { connectionId: conn.id, senderId: giulia.id, text: "ciao", now });
+    await new Promise((r) => setTimeout(r, 200));
+    release();
+    await closing;
+    expect(await creating).toEqual({ ok: false, error: "connection_not_active" });
+  });
+
+  const change = async (connectionId: string, from: string, to: string, time: string, iso: string) => {
+    await proposeRevealTime(db, { connectionId, userId: from, time, now: at(iso) });
+    await acceptProposal(db, { connectionId, userId: to, now: at(iso) });
+  };
+
+  test("due cambi accettati lo stesso giorno: stasera vale ancora l'orario originale", async () => {
+    const { giulia, marco, conn } = await setup();
+    await change(conn.id, giulia.id, marco.id, "22:00", "2026-11-02T10:00:00Z");
+    await change(conn.id, giulia.id, marco.id, "23:00", "2026-11-02T12:00:00Z");
+    const res = await createTextLantern(db, {
+      connectionId: conn.id,
+      senderId: marco.id,
+      text: "ciao",
+      now: at("2026-11-02T13:00:00Z"),
+    });
+    // 21:30 a Roma (UTC+1): l'orario in vigore stasera, prima di entrambi i cambi
+    expect(res.ok && res.value.revealAt.toISOString()).toBe("2026-11-02T20:30:00.000Z");
+  });
+
+  test("cambio accettato il giorno dopo: l'orario precedente è quello del primo cambio", async () => {
+    const { giulia, marco, conn } = await setup();
+    await change(conn.id, giulia.id, marco.id, "22:00", "2026-11-02T10:00:00Z");
+    await change(conn.id, giulia.id, marco.id, "23:00", "2026-11-03T12:00:00Z");
+    const [row] = await db.select().from(connections).where(eq(connections.id, conn.id));
+    expect(row).toMatchObject({ revealTime: "23:00", previousRevealTime: "22:00" });
+  });
+
+  test("partnerLeftNothing falso se la connessione è nata dopo l'apertura di stasera", async () => {
+    const { marco, conn } = await setup();
+    await db
+      .update(connections)
+      .set({ activatedAt: at("2026-11-03T02:45:00Z") })
+      .where(eq(connections.id, conn.id));
+    const res = await getChannel(db, { connectionId: conn.id, userId: marco.id, now: at("2026-11-03T03:00:00Z") });
+    expect(res.ok && res.value.partnerLeftNothing).toBe(false);
   });
 });

@@ -1,7 +1,7 @@
 import { beforeEach, describe, expect, test } from "vitest";
 import { eq, sql } from "drizzle-orm";
 import { acceptInvite, createInvite, getInvitePreview } from "@/lib/access/invites";
-import { blocks, connections } from "@/lib/db/schema";
+import { blocks, connections, invites } from "@/lib/db/schema";
 import { getTestDb, makeConnection, makeUser, resetDb } from "../helpers/db";
 
 const db = getTestDb();
@@ -256,5 +256,40 @@ describe("getInvitePreview", () => {
         expiresAt: new Date("2026-11-09T10:00:00Z"),
       },
     });
+  });
+});
+
+describe("orari e blocchi in corso", () => {
+  test("createdAt e activatedAt vengono dal now passato, non dall'orologio del DB", async () => {
+    const [a, b] = [await makeUser(db), await makeUser(db)];
+    const code = await inviteFrom(a.id);
+    const [invite] = await db.select().from(invites).where(eq(invites.code, code));
+    expect(invite.createdAt).toEqual(now);
+    const res = await acceptInvite(db, { code, userId: b.id, now: later });
+    if (!res.ok) throw new Error(res.error);
+    const [conn] = await db.select().from(connections).where(eq(connections.id, res.value.connectionId));
+    expect(conn.createdAt).toEqual(later);
+    expect(conn.activatedAt).toEqual(later);
+  });
+
+  test("un blocco in corso tra le due persone fa fallire l'accettazione", async () => {
+    const [a, b] = [await makeUser(db), await makeUser(db)];
+    const code = await inviteFrom(a.id);
+    let release!: () => void;
+    const gate = new Promise<void>((r) => (release = r));
+    let markLocked!: () => void;
+    const locked = new Promise<void>((r) => (markLocked = r));
+    const blocking = db.transaction(async (tx) => {
+      await tx.execute(sql`SELECT id FROM "user" WHERE id IN (${a.id}, ${b.id}) ORDER BY id FOR UPDATE`);
+      await tx.insert(blocks).values({ blockerId: a.id, blockedId: b.id });
+      markLocked();
+      await gate;
+    });
+    await locked;
+    const accepting = acceptInvite(db, { code, userId: b.id, now: later });
+    await new Promise((r) => setTimeout(r, 200));
+    release();
+    await blocking;
+    expect(await accepting).toEqual({ ok: false, error: "invite_invalid" });
   });
 });

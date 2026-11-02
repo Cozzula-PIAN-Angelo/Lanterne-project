@@ -41,3 +41,13 @@ test("id con maiuscole e minuscole: la coppia ordinata in JS è accettata", asyn
   const b = await makeUser(db, { id: "ax0000000000000000000000000000AA" });
   await expect(makeConnection(db, a, b)).resolves.toBeDefined();
 });
+
+test("indici sulle colonne usate nelle ricerche", async () => {
+  const rows = await db.execute<{ indexdef: string }>(
+    sql`SELECT indexdef FROM pg_indexes WHERE schemaname = 'public'`,
+  );
+  const defs = rows.map((r) => r.indexdef).join("\n");
+  expect(defs).toMatch(/ON public\.lanterns USING btree \(sender_id/);
+  expect(defs).toMatch(/ON public\.invites USING btree \(inviter_id/);
+  expect(defs).toMatch(/ON public\.connections USING btree \(user_b_id/);
+});

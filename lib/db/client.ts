@@ -8,7 +8,12 @@ export function createDb(url: string) {
 
 export type Db = ReturnType<typeof createDb>;
 
-export const db: Db = createDb(process.env.DATABASE_URL ?? "");
+// In sviluppo il modulo viene ricaricato a ogni modifica: si riusa lo stesso pool
+// invece di aprirne uno nuovo ogni volta (altrimenti "too many clients").
+const globalForDb = globalThis as unknown as { lanterneDb?: Db };
+
+export const db: Db = globalForDb.lanterneDb ?? createDb(process.env.DATABASE_URL ?? "");
+if (process.env.NODE_ENV !== "production") globalForDb.lanterneDb = db;
 
 /** Transazione drizzle: le funzioni di accesso accettano sia il db sia una transazione. */
 export type Tx = Parameters<Parameters<Db["transaction"]>[0]>[0];
