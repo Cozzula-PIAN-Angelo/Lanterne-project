@@ -17,7 +17,7 @@ const eslintConfig = defineConfig([
     },
   },
   {
-    files: ["lib/clock/**"],
+    files: ["lib/clock/**", "lib/db/auth-schema.ts"],
     rules: { "no-restricted-syntax": "off" },
   },
   // Override default ignores of eslint-config-next.
