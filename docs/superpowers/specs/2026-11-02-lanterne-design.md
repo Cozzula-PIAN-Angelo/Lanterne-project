@@ -91,7 +91,7 @@ Non è una chat e non vuole sostituire WhatsApp o altri social: è un **rituale 
 | Frontend + backend | Next.js (App Router), TypeScript, Server Components, Server Actions, Route Handlers |
 | Database | PostgreSQL + Drizzle ORM |
 | Media | Storage compatibile S3: **MinIO** in locale, Cloudflare R2 / AWS S3 in un eventuale deploy |
-| Autenticazione | Auth.js, email con magic link, sessioni nel database |
+| Autenticazione | Better Auth (plugin magic link, adattatore Drizzle), sessioni nel database |
 | Email in locale | Mailpit |
 | Lavori pianificati | Processo worker Node con **pg-boss** (coda su PostgreSQL, niente Redis) |
 | Notifiche | Web Push (VAPID) tramite service worker |
@@ -139,7 +139,7 @@ Tempi in UTC (`timestamptz`); orari "da orologio" come `time` o stringa `HH:MM`.
 - `color`: il colore personale; le lanterne dell'utente hanno questo colore
 - `timezone`: fuso IANA, es. `Europe/Rome`
 - `allowSaving` (bool, default `true`), `createdAt`
-- più le tabelle standard di Auth.js (account, sessioni, token di verifica)
+- più le tabelle standard di Better Auth (`user` esteso con i campi sopra, `session`, `account`, `verification`)
 
 **`connections`**
 - `id`, `userAId`, `userBId`, `status` (`pending` | `active` | `ended`)
@@ -258,7 +258,7 @@ Il worker serve solo per notifiche e pulizia; un suo ritardo non altera mai la v
 
 ## 9. Sicurezza e privacy
 
-- **Sessioni:** Auth.js nel database, cookie `httpOnly` e `secure`. Rate limit su login, creazione e accettazione inviti, upload.
+- **Sessioni:** Better Auth nel database, cookie `httpOnly` e `secure`. Rate limit su login, creazione e accettazione inviti, upload.
 - **Autorizzazione:** centralizzata in `lib/access`, che è il modulo più testato. Tutti gli input sono validati con Zod.
 - **Media:**
   - bucket privato;
