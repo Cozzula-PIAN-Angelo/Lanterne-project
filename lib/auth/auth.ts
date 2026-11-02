@@ -8,10 +8,12 @@ import { sendMail } from "@/lib/mail/mailer";
 export const auth = betterAuth({
   database: drizzleAdapter(db, { provider: "pg" }),
   user: {
+    // input: false → non modificabili dalle API di Better Auth (sign-up, update-user):
+    // si scrivono solo da saveProfile, che li valida.
     additionalFields: {
-      color: { type: "string", required: false },
-      timezone: { type: "string", required: false, defaultValue: "UTC" },
-      allowSaving: { type: "boolean", required: false, defaultValue: true },
+      color: { type: "string", required: false, input: false },
+      timezone: { type: "string", required: false, defaultValue: "UTC", input: false },
+      allowSaving: { type: "boolean", required: false, defaultValue: true, input: false },
     },
   },
   emailAndPassword: {

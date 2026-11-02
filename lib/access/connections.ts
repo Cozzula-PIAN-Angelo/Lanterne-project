@@ -1,5 +1,5 @@
-import { and, count, eq, inArray, isNull, or } from "drizzle-orm";
-import type { Db, DbOrTx } from "@/lib/db/client";
+import { and, asc, count, eq, inArray, isNull, or } from "drizzle-orm";
+import type { Db, DbOrTx, Tx } from "@/lib/db/client";
 import { connections, lanterns, user } from "@/lib/db/schema";
 import { computeRevealAt } from "@/lib/time/lantern-times";
 import { isAllowedRevealTime } from "@/lib/time/reveal-time";
@@ -22,6 +22,21 @@ const isMember = (userId: string) =>
 
 const partnerIdOf = (c: ConnectionRow, userId: string) =>
   c.userAId === userId ? c.userBId : c.userAId;
+
+/**
+ * Blocca (FOR UPDATE) le righe degli utenti, sempre in ordine di id per evitare deadlock.
+ * Chi crea connessioni o blocchi tra queste persone aspetta: i conteggi restano coerenti.
+ * Restituisce gli id effettivamente trovati.
+ */
+export async function lockUsers(tx: Tx, ids: string[]): Promise<string[]> {
+  const rows = await tx
+    .select({ id: user.id })
+    .from(user)
+    .where(inArray(user.id, ids))
+    .orderBy(asc(user.id))
+    .for("update");
+  return rows.map((r) => r.id);
+}
 
 /** Connessioni che occupano un posto: active + pending. */
 export async function countOpenConnections(db: DbOrTx, userId: string): Promise<number> {

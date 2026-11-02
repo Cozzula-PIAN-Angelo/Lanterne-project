@@ -47,7 +47,8 @@ export const connections = pgTable(
     endedAt: instant("ended_at"),
   },
   (t) => [
-    check("connections_user_order", sql`${t.userAId} < ${t.userBId}`),
+    // COLLATE "C": stesso ordine di Array.sort() in JS, qualunque sia la collation del DB.
+    check("connections_user_order", sql`${t.userAId} COLLATE "C" < ${t.userBId} COLLATE "C"`),
     uniqueIndex("connections_open_pair")
       .on(t.userAId, t.userBId)
       .where(sql`${t.status} <> 'ended'`),

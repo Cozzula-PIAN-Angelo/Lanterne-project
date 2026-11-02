@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, test } from "vitest";
-import { eq } from "drizzle-orm";
+import { eq, sql } from "drizzle-orm";
 import { acceptInvite, createInvite, getInvitePreview } from "@/lib/access/invites";
 import { blocks, connections } from "@/lib/db/schema";
 import { getTestDb, makeConnection, makeUser, resetDb } from "../helpers/db";
@@ -200,6 +200,46 @@ describe("acceptInvite", () => {
       ok: false,
       error: "onboarding_required",
     });
+  });
+});
+
+describe("acceptInvite concorrenti", () => {
+  test("invitante a 4 con un'altra accettazione in corso → aspetta e dà connection_limit_other", async () => {
+    const [a, b, x] = [await makeUser(db), await makeUser(db), await makeUser(db)];
+    await fillConnections(a.id, 4);
+    const code = await inviteFrom(a.id);
+
+    // Simula un'accettazione concorrente: blocca l'invitante e gli aggiunge la 5ª connessione,
+    // senza ancora fare commit.
+    let release!: () => void;
+    const gate = new Promise<void>((r) => (release = r));
+    let markLocked!: () => void;
+    const locked = new Promise<void>((r) => (markLocked = r));
+    const other = db.transaction(async (tx) => {
+      await tx.execute(sql`SELECT id FROM "user" WHERE id = ${a.id} FOR UPDATE`);
+      const [userAId, userBId] = [a.id, x.id].sort();
+      await tx.insert(connections).values({ userAId, userBId, status: "active", revealTime: "21:30" });
+      markLocked();
+      await gate;
+    });
+    await locked;
+
+    const accepting = acceptInvite(db, { code, userId: b.id, now: later });
+    await new Promise((r) => setTimeout(r, 200));
+    release();
+    await other;
+    expect(await accepting).toEqual({ ok: false, error: "connection_limit_other" });
+  });
+
+  test("inviti incrociati A→B e B→A accettati insieme → already_connected, non un errore", async () => {
+    const [a, b] = [await makeUser(db), await makeUser(db)];
+    const [fromA, fromB] = [await inviteFrom(a.id), await inviteFrom(b.id)];
+    const results = await Promise.all([
+      acceptInvite(db, { code: fromA, userId: b.id, now: later }),
+      acceptInvite(db, { code: fromB, userId: a.id, now: later }),
+    ]);
+    expect(results.filter((r) => r.ok)).toHaveLength(1);
+    expect(results.filter((r) => !r.ok)).toEqual([{ ok: false, error: "already_connected" }]);
   });
 });
 

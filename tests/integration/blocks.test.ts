@@ -48,6 +48,14 @@ test("blockUser chiude la connessione e cancella le lanterne del bloccante", asy
   expect(await listBlocked(db, blocker.id)).toEqual([{ id: blocked.id, name: "Bruno" }]);
 });
 
+test("bloccare un utente inesistente → not_found, non un errore", async () => {
+  const blocker = await makeUser(db);
+  expect(await blockUser(db, { blockerId: blocker.id, blockedId: "inesistente", now })).toEqual({
+    ok: false,
+    error: "not_found",
+  });
+});
+
 test("unblockUser toglie il blocco ma la connessione resta chiusa", async () => {
   const blocker = await makeUser(db);
   const blocked = await makeUser(db);

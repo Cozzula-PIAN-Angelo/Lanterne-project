@@ -6,7 +6,7 @@ import { INVITE_TTL_DAYS, MAX_CONNECTIONS, RATE_LIMITS } from "@/lib/lanterns/co
 import { checkRateLimit } from "@/lib/rate-limit";
 import { isAllowedRevealTime } from "@/lib/time/reveal-time";
 import { isBlockedEitherWay } from "./blocks";
-import { countOpenConnections } from "./connections";
+import { countOpenConnections, lockUsers } from "./connections";
 import { fail, ok, type AccessResult } from "./errors";
 import { isOnboarded } from "./profile";
 
@@ -103,6 +103,9 @@ export async function acceptInvite(
     // 2. invito inesistente (bloccato per la durata della transazione)
     const [invite] = await tx.select().from(invites).where(eq(invites.code, code)).for("update");
     if (!invite) return fail("invite_invalid");
+
+    // Serializza con le altre operazioni sugli stessi due utenti (limite di 5, inviti incrociati).
+    await lockUsers(tx, [invite.inviterId, userId]);
 
     // 3. onboarding
     const invitee = await findUser(tx, userId);

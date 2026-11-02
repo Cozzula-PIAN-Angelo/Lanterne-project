@@ -1,7 +1,7 @@
 import { and, asc, eq, ne, or } from "drizzle-orm";
 import type { Db, DbOrTx } from "@/lib/db/client";
 import { blocks, connections, lanterns, user } from "@/lib/db/schema";
-import { closeConnection } from "./connections";
+import { closeConnection, lockUsers } from "./connections";
 import { fail, ok, type AccessResult } from "./errors";
 
 /** true se a ha bloccato b oppure b ha bloccato a. */
@@ -31,6 +31,9 @@ export async function blockUser(
   if (blockerId === blockedId) return fail("invalid_input");
 
   return db.transaction(async (tx) => {
+    const found = await lockUsers(tx, [blockerId, blockedId]);
+    if (found.length < 2) return fail("not_found");
+
     await tx
       .insert(blocks)
       .values({ blockerId, blockedId, createdAt: now })
