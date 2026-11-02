@@ -7,14 +7,14 @@ export type RevealSchedule = {
 };
 
 /**
- * Prossimo arrivo nel fuso del destinatario. Un cambio d'orario vale dal giorno dopo:
- * nel giorno locale del cambio si usa ancora l'orario precedente.
+ * Prossimo arrivo nel fuso del destinatario. Un cambio d'orario vale dalla sera dopo:
+ * la sera del giorno locale del cambio usa ancora l'orario precedente.
  */
 export function computeRevealAt(schedule: RevealSchedule, recipientTz: string, now: Date): Date {
   const changeDay = schedule.revealTimeChangedAt ? localDateOf(schedule.revealTimeChangedAt, recipientTz) : null;
   return firstOccurrenceAfter(
-    (day) =>
-      changeDay && schedule.previousRevealTime && sameLocalDate(day, changeDay)
+    (evening) =>
+      changeDay && schedule.previousRevealTime && sameLocalDate(evening, changeDay)
         ? schedule.previousRevealTime
         : schedule.revealTime,
     recipientTz,

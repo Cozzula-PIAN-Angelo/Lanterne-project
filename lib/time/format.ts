@@ -7,15 +7,28 @@ function localTime(at: Date, tz: string): string {
   return format(new TZDate(at.getTime(), tz), "H:mm");
 }
 
-/** "stasera alle 21:30", "stanotte a mezzanotte", "domani alle 21:30", "il 4 novembre alle 21:30" */
+/** "alle 21:30", oppure "a mezzanotte" */
+function atTime(at: Date, tz: string): string {
+  const time = localTime(at, tz);
+  return time === "0:00" ? "a mezzanotte" : `alle ${time}`;
+}
+
+/**
+ * "stasera alle 21:30", "oggi alle 15:30", "stanotte alle 3:30", "stanotte a mezzanotte",
+ * "domani alle 21:30", "il 5 novembre a mezzanotte". La parola segue l'ora locale di chi guarda.
+ */
 export function formatRevealLabel(revealAt: Date, viewerTz: string, now: Date): string {
   const day = localDateOf(revealAt, viewerTz);
   const today = localDateOf(now, viewerTz);
-  const tomorrow = addLocalDays(today, 1);
-  const time = localTime(revealAt, viewerTz);
-  if (sameLocalDate(day, today)) return `stasera alle ${time}`;
-  if (sameLocalDate(day, tomorrow)) return time === "0:00" ? "stanotte a mezzanotte" : `domani alle ${time}`;
-  return `il ${format(new TZDate(revealAt.getTime(), viewerTz), "d MMMM", { locale: it })} alle ${time}`;
+  const hour = new TZDate(revealAt.getTime(), viewerTz).getHours();
+  const at = atTime(revealAt, viewerTz);
+  if (sameLocalDate(day, today)) {
+    if (hour < 5) return `stanotte ${at}`;
+    return hour < 17 ? `oggi ${at}` : `stasera ${at}`;
+  }
+  if (sameLocalDate(day, addLocalDays(today, 1)) && hour < 5) return `stanotte ${at}`;
+  if (sameLocalDate(day, addLocalDays(today, 1))) return `domani ${at}`;
+  return `il ${format(new TZDate(revealAt.getTime(), viewerTz), "d MMMM", { locale: it })} ${at}`;
 }
 
 /** Partenza vista dal mittente, con l'ora del destinatario se i fusi differiscono. */
@@ -28,7 +41,8 @@ export function formatDepartureLabel(
 ): string {
   const label = `partono ${formatRevealLabel(revealAt, viewerTz, now)}`;
   const theirs = localTime(revealAt, recipientTz);
-  return theirs === localTime(revealAt, viewerTz) ? label : `${label}, le ${theirs} di ${recipientName}`;
+  if (theirs === localTime(revealAt, viewerTz)) return label;
+  return theirs === "0:00" ? `${label}, la mezzanotte di ${recipientName}` : `${label}, le ${theirs} di ${recipientName}`;
 }
 
 export function formatCountdown(ms: number): string {

@@ -46,12 +46,20 @@ export function sameLocalDate(a: LocalDate, b: LocalDate): boolean {
   return da === db;
 }
 
-/** Primo istante strettamente successivo ad `after`, scegliendo l'orario giorno per giorno. */
-export function firstOccurrenceAfter(timeForDay: (day: LocalDate) => string, tz: string, after: Date): Date {
+/**
+ * Istante dell'apertura della sera `evening`: mezzanotte appartiene alla sera precedente,
+ * quindi cade nel giorno di calendario successivo.
+ */
+export function eveningInstant(evening: LocalDate, time: string, tz: string): Date {
+  return localInstant(time === "00:00" ? addLocalDays(evening, 1) : evening, time, tz);
+}
+
+/** Primo istante strettamente successivo ad `after`, scegliendo l'orario sera per sera. */
+export function firstOccurrenceAfter(timeForEvening: (evening: LocalDate) => string, tz: string, after: Date): Date {
   const today = localDateOf(after, tz);
-  for (const offset of [0, 1]) {
-    const day = addLocalDays(today, offset);
-    const candidate = localInstant(day, timeForDay(day), tz);
+  for (const offset of [-1, 0, 1]) {
+    const evening = addLocalDays(today, offset);
+    const candidate = eveningInstant(evening, timeForEvening(evening), tz);
     if (candidate.getTime() > after.getTime()) return candidate;
   }
   throw new Error("Nessuna occorrenza trovata: orario fuori dall'intervallo consentito?");
@@ -64,7 +72,7 @@ export function nextOccurrence(time: string, tz: string, after: Date): Date {
 export function previousOccurrence(time: string, tz: string, atOrBefore: Date): Date {
   const today = localDateOf(atOrBefore, tz);
   for (const offset of [0, -1]) {
-    const candidate = localInstant(addLocalDays(today, offset), time, tz);
+    const candidate = eveningInstant(addLocalDays(today, offset), time, tz);
     if (candidate.getTime() <= atOrBefore.getTime()) return candidate;
   }
   throw new Error("Nessuna occorrenza trovata: orario fuori dall'intervallo consentito?");

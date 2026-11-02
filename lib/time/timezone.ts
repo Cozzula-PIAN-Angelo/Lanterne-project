@@ -1,5 +1,9 @@
+// Nomi IANA come "Europe/Rome" o "America/Argentina/Buenos_Aires", più "UTC".
+// Esclude offset fissi ("+01:00"), abbreviazioni ("EST") e minuscole ("europe/rome").
+const IANA_NAME = /^(UTC|[A-Z][A-Za-z]+(\/[A-Z][A-Za-z0-9_+-]*)+)$/;
+
 export function isValidTimeZone(tz: string): boolean {
-  if (!tz) return false;
+  if (!IANA_NAME.test(tz)) return false;
   try {
     new Intl.DateTimeFormat("en", { timeZone: tz });
     return true;
