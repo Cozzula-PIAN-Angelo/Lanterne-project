@@ -16,3 +16,15 @@ export const RATE_LIMITS = {
 
 export const MAX_CONNECTIONS = 5;
 export const INVITE_TTL_DAYS = 7;
+
+export const THOUGHTS = [
+  { id: "ti-penso", text: "ti penso" },
+  { id: "giornata-pesante", text: "giornata pesante, ci sono" },
+  { id: "niente-da-raccontare", text: "oggi niente da raccontare, ma ci sono" },
+  { id: "abbraccio", text: "ti mando un abbraccio" },
+  { id: "sorriso", text: "un sorriso a caso per te" },
+] as const;
+
+export const REACTIONS = ["💛", "🫂", "😂", "😮", "🌙"] as const;
+
+export const TEXT_MAX = 1000;
