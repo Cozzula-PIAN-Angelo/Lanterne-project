@@ -8,3 +8,8 @@ export const COLORS = [
   { id: "oro", hex: "#D8BB6A" },
   { id: "verde-acqua", hex: "#6FA8A0" },
 ] as const;
+
+export const RATE_LIMITS = {
+  inviteCreate: { limit: 10, windowSec: 3600 },
+  inviteAccept: { limit: 20, windowSec: 3600 },
+} as const;
