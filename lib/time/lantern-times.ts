@@ -1,4 +1,4 @@
-import { firstOccurrenceAfter, localDateOf, sameLocalDate } from "./reveal-time";
+import { firstOccurrenceAfter, localDateOf, nextOccurrence, sameLocalDate } from "./reveal-time";
 
 export type RevealSchedule = {
   revealTime: string;
@@ -20,4 +20,12 @@ export function computeRevealAt(schedule: RevealSchedule, recipientTz: string, n
     recipientTz,
     now,
   );
+}
+
+const MIN_VISIBLE_MS = 8 * 60 * 60 * 1000;
+
+/** Le 06:00 del destinatario dopo l'arrivo, ma mai meno di 8 ore di visibilità. */
+export function computeExpiresAt(revealAt: Date, recipientTz: string): Date {
+  const morning = nextOccurrence("06:00", recipientTz, revealAt);
+  return new Date(Math.max(morning.getTime(), revealAt.getTime() + MIN_VISIBLE_MS));
 }
