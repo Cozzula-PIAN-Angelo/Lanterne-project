@@ -46,3 +46,8 @@ next-env.d.ts
 !.env.example
 .impeccable/
 certificates/
+
+# playwright
+/test-results/
+/playwright-report/
+/blob-report/
