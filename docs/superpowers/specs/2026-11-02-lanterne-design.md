@@ -308,7 +308,7 @@ Il worker serve solo per notifiche e pulizia; un suo ritardo non altera mai la v
 
 ### Formato audio
 - Registrazione con `MediaRecorder`, preferendo `audio/mp4` (AAC) quando supportato, altrimenti `audio/webm`.
-- **Primo passo dell'implementazione:** verifica di registrazione e riproduzione incrociata tra Android e iPhone.
+- **Verifica:** registrazione e riproduzione incrociata provate tra Android e desktop. iPhone resta non verificato finché non è disponibile un dispositivo.
 - Solo se emergono incompatibilità si aggiunge la conversione con ffmpeg nel worker.
 
 ---

@@ -34,6 +34,18 @@ Per gli account nuovi, il magic link arriva su Mailpit: `http://localhost:8025`.
 In sviluppo, in fondo alle pagine c'è il pannello **Viaggio nel tempo**, per vedere le lanterne
 arrivare senza aspettare la sera.
 
+## Provare su Android
+
+Chrome considera sicuro `localhost`: il microfono funziona senza HTTPS, se il telefono raggiunge il PC
+tramite `adb`.
+
+1. Con Android 11 o successivi, attiva **Debug wireless** sul telefono, nella stessa rete Wi-Fi del PC.
+2. Associa il telefono: `adb pair <indirizzo>:<porta> <codice>`.
+3. Collega le porte: `adb reverse tcp:3000 tcp:3000` e `adb reverse tcp:9000 tcp:9000`.
+4. Apri `http://localhost:3000` sul telefono.
+
+Vocali e foto sono stati provati tra Android e desktop. **Su iPhone non sono ancora stati verificati.**
+
 ## Test
 
 ```bash

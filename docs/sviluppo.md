@@ -297,3 +297,10 @@ che riproduce il problema:
   parti trasparenti, che in JPEG diventerebbero nere.
 - **Formati non leggibili:** se il browser non riesce ad aprire il file, la persona riceve un messaggio
   calmo e può sceglierne un altro.
+
+### Task 5 — Prova reale su Android
+- **Esito:** vocali e foto funzionano tra un telefono Android e Chrome desktop, nei due sensi. iPhone resta
+  non verificato per mancanza del dispositivo, come dice `docs/notes/audio-format.md`.
+- **Come si collega il telefono:** il debug wireless e `adb reverse` espongono `localhost` sul telefono.
+  Chrome lo considera un contesto sicuro, quindi il microfono funziona senza HTTPS. Il cavo USB
+  richiederebbe un driver da installare come amministratore.
