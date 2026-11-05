@@ -224,7 +224,19 @@ riproduce il problema:
   il select del fuso, perché il testo del suo label include "America/Menominee". Quattro esecuzioni
   consecutive della suite sono verdi.
 
+### Task 15 — Dati demo, setup in un comando e viaggio nel tempo
+- **`pnpm run setup`:** crea `.env` se manca, genera il segreto solo se è vuoto, migra il database e
+  carica i dati demo. Va scritto per esteso perché `pnpm setup` è un comando interno di pnpm.
+- **Dati demo:** Giulia, Marco e Sara, con connessioni attive, una proposta in attesa, lanterne
+  arrivate, una sigillata e un ricordo, tutte con istanti relativi al momento del caricamento. Il
+  seed è rilanciabile e cancella solo gli utenti demo: un test verifica che gli altri restino.
+- **Pannello "viaggio nel tempo":** in sviluppo sposta l'orologio del server per quel browser (+1
+  ora, +6 ore, domani mattina, torna a ora). L'azione si rifiuta di funzionare fuori dallo sviluppo,
+  e anche `getRequestClock` ignora il cookie.
+- **Flusso completo in e2e:** invito, invio, salto nel tempo fino all'arrivo, reazione e
+  salvataggio, fino a ciò che vede il mittente.
+
 ---
 
-**Stato:** 76 test di integrazione, 65 unit e 9 e2e verdi. Prossimo passo: Task 15 (dati demo, setup
-in un comando e pannello "viaggio nel tempo").
+**Stato:** 80 test di integrazione, 74 unit e 10 e2e verdi. Prossimo passo: revisione del blocco C
+(Task 12–15) e PR `piano-1` → `main`.

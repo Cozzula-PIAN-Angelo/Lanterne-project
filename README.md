@@ -1,36 +1,43 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Lanterne
 
-## Getting Started
+Una PWA per restare vicini a poche persone: lasci una lanterna durante il giorno e arriva alla sera,
+all'orario che avete concordato, nell'ora locale di chi la riceve.
 
-First, run the development server:
+> Questo è il Piano 1 (fondamenta): l'interfaccia è volutamente schematica. Il diario tecnico è in
+> [`docs/sviluppo.md`](docs/sviluppo.md).
+
+## Prerequisiti
+
+- Node LTS e pnpm
+- PostgreSQL e Mailpit, con Docker (`docker compose up -d`) oppure installati a mano. Il database
+  deve rispondere sulla porta **5433**, con gli utenti e i database di `docker/postgres-init.sql`.
+
+## Avvio rapido
 
 ```bash
-npm run dev
-# or
-yarn dev
-# or
+docker compose up -d   # se usi Docker
+pnpm install
+pnpm run setup         # crea .env, migra il database e carica i dati demo
 pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Usa `pnpm run setup` per esteso: `pnpm setup` è un comando interno di pnpm, che non lancia lo script
+del progetto.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## Utenti demo
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+Da `http://localhost:3000/accedi`, con i pulsanti "Entra come…": **Giulia**, **Marco** e **Sara**.
+Per gli account nuovi, il magic link arriva su Mailpit: `http://localhost:8025`.
 
-## Learn More
+In sviluppo, in fondo alle pagine c'è il pannello **Viaggio nel tempo**, per vedere le lanterne
+arrivare senza aspettare la sera.
 
-To learn more about Next.js, take a look at the following resources:
+## Test
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
-
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
-
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+```bash
+pnpm typecheck
+pnpm lint
+pnpm test:unit
+pnpm test:int      # richiede il database
+pnpm test:e2e      # richiede database e Mailpit
+```

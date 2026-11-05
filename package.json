@@ -12,7 +12,9 @@
     "test:int": "vitest run --project integration",
     "db:generate": "drizzle-kit generate",
     "db:migrate": "drizzle-kit migrate",
-    "test:e2e": "playwright test"
+    "test:e2e": "playwright test",
+    "db:seed": "tsx scripts/seed.ts",
+    "setup": "tsx scripts/setup.ts"
   },
   "dependencies": {
     "@base-ui/react": "^1.9.0",
@@ -45,6 +47,7 @@
     "eslint": "^9",
     "eslint-config-next": "16.4.3",
     "tailwindcss": "^4",
+    "tsx": "^4.23.15",
     "typescript": "^5",
     "vitest": "^5.0.5"
   },

@@ -22,3 +22,10 @@ export function parseDevOffset(raw: string | undefined, nodeEnv: string | undefi
   const ms = Number(raw);
   return Number.isFinite(ms) ? ms : 0;
 }
+
+/** Il valore del cookie del viaggio nel tempo. Fuori dallo sviluppo si rifiuta di produrlo. */
+export function devOffsetCookieValue(ms: number, nodeEnv: string | undefined): string {
+  if (nodeEnv !== "development") throw new Error("Il viaggio nel tempo esiste solo in sviluppo.");
+  if (!Number.isFinite(ms)) throw new Error("Spostamento dell'orologio non valido.");
+  return String(ms);
+}
