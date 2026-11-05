@@ -3,6 +3,7 @@
 import { redirect } from "next/navigation";
 import type { AccessResult } from "@/lib/access/errors";
 import { saveProfile } from "@/lib/access/profile";
+import { safeNextPath } from "@/lib/auth/next-path";
 import { requireUser } from "@/lib/auth/session";
 import { db } from "@/lib/db/client";
 
@@ -13,6 +14,6 @@ export async function updateProfileAction(formData: FormData): Promise<AccessRes
     color: formData.get("color"),
     timezone: formData.get("timezone"),
   });
-  if (result.ok) redirect("/");
+  if (result.ok) redirect(safeNextPath(formData.get("next")) ?? "/");
   return result;
 }

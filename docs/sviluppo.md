@@ -173,7 +173,24 @@ riproduce il problema:
 - altri casi limite di concorrenza, indici mancanti e connessioni al DB moltiplicate dal
   ricaricamento in sviluppo.
 
+### Task 12 — Home e inviti nell'interfaccia
+- **Home "Le tue persone":** una card per connessione, con l'orario di arrivo nell'ora locale di
+  chi guarda oppure "In attesa: proposta delle 21:30", più gli slot liberi fino a 5.
+- **`/invita`:** si sceglie l'orario e si ottiene il link da copiare. Se gli appunti non sono
+  disponibili, il link resta selezionabile a mano.
+- **`/invito/[code]`:** si accetta o si propone un altro orario; ogni rifiuto di `lib/access`
+  diventa un messaggio calmo in italiano (`errorMessage`).
+- **Ritorno all'invito:** chi apre il link senza account passa da login e onboarding e torna
+  all'invito grazie a un parametro `next`. Il parametro arriva dall'URL, quindi `safeNextPath`
+  accetta solo percorsi interni: niente open redirect verso altri siti. La pagina sta nel gruppo
+  `(inviti)` perché il layout di `(app)` manda a `/accedi` senza sapere da quale pagina arrivi.
+- **Un bug trovato dall'e2e:** React riusava lo stesso `<button>` passando da `type="button"` a
+  `type="submit"` durante il click, e il form partiva da solo con l'orario di default. Le `key`
+  obbligano React a creare bottoni nuovi.
+- **Effetti di Next.js sui test:** con `cacheComponents` le pagine già visitate restano nel DOM,
+  nascoste da `<Activity>`, quindi i selettori di testo filtrano sugli elementi visibili. Il limite
+  di 5 magic link al minuto per IP resta attivo: gli e2e azzerano il contatore prima di ogni test.
+
 ---
 
-**Stato:** 73 test di integrazione, 46 unit e 1 e2e verdi. Prossimo passo: Task 12 (home e
-inviti nell'interfaccia).
+**Stato:** 73 test di integrazione, 61 unit e 3 e2e verdi. Prossimo passo: Task 13 (il canale).

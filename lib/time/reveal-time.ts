@@ -77,3 +77,15 @@ export function previousOccurrence(time: string, tz: string, atOrBefore: Date): 
   }
   throw new Error("Nessuna occorrenza trovata: orario fuori dall'intervallo consentito?");
 }
+
+/** Gli orari che si possono scegliere nei form: ogni 15 minuti, più la mezzanotte. */
+export function revealTimeOptions(): { value: string; label: string }[] {
+  const options = [];
+  for (let hour = 17; hour < 24; hour++) {
+    for (const minute of [0, 15, 30, 45]) {
+      const value = `${hour}:${String(minute).padStart(2, "0")}`;
+      options.push({ value, label: value });
+    }
+  }
+  return [...options, { value: "00:00", label: "mezzanotte" }];
+}

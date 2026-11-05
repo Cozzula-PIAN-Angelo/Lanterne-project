@@ -12,7 +12,7 @@ const DEMO_USERS = [
 ];
 const DEMO_PASSWORD = "lanterne-demo";
 
-export function SignInForm({ demo }: { demo: boolean }) {
+export function SignInForm({ demo, next = "/" }: { demo: boolean; next?: string }) {
   const router = useRouter();
   const [status, setStatus] = useState<"idle" | "sending" | "sent" | "error">("idle");
 
@@ -20,7 +20,7 @@ export function SignInForm({ demo }: { demo: boolean }) {
     setStatus("sending");
     const { error } = await authClient.signIn.magicLink({
       email: String(formData.get("email") ?? ""),
-      callbackURL: "/",
+      callbackURL: next,
     });
     setStatus(error ? "error" : "sent");
   }
@@ -28,7 +28,7 @@ export function SignInForm({ demo }: { demo: boolean }) {
   async function signInDemo(email: string) {
     const { error } = await authClient.signIn.email({ email, password: DEMO_PASSWORD });
     if (error) setStatus("error");
-    else router.push("/");
+    else router.push(next);
   }
 
   if (status === "sent") {

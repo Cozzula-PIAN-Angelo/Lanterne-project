@@ -52,3 +52,13 @@ export function formatCountdown(ms: number): string {
   const hours = Math.floor(minutes / 60);
   return hours === 1 ? "tra 1 ora" : `tra ${hours} ore`;
 }
+
+/** "alle 21:30" o "a mezzanotte", per un orario `HH:MM` non ancora legato a un giorno. */
+export function atRevealTime(time: string): string {
+  return time === "00:00" ? "a mezzanotte" : `alle ${time}`;
+}
+
+/** "delle 21:30" o "di mezzanotte". */
+export function ofRevealTime(time: string): string {
+  return time === "00:00" ? "di mezzanotte" : `delle ${time}`;
+}

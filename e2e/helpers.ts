@@ -1,4 +1,8 @@
 import { expect, type Page } from "@playwright/test";
+import postgres from "postgres";
+
+// Con cacheComponents le pagine già visitate restano nel DOM, nascoste da <Activity>:
+// dopo una navigazione client i selettori di testo vanno filtrati con { visible: true }.
 
 export const MAILPIT = "http://localhost:8025";
 export const DEMO_PASSWORD = "lanterne-demo";
@@ -8,6 +12,11 @@ type MailpitList = { messages: { ID: string }[] };
 /** Chiede il magic link da /accedi, lo legge da Mailpit e lo apre. */
 export async function loginWithMagicLink(page: Page, email: string) {
   await page.goto("/accedi");
+  await requestAndOpenMagicLink(page, email);
+}
+
+/** Dal form di accesso già aperto: chiede il link, lo legge da Mailpit e lo apre. */
+export async function requestAndOpenMagicLink(page: Page, email: string) {
   await page.getByLabel("Email").fill(email);
   await page.getByRole("button", { name: "Mandami il link" }).click();
   await expect(page.getByText("Ti abbiamo mandato un link")).toBeVisible();
@@ -36,4 +45,49 @@ export async function loginAsDemo(page: Page, email: string) {
   });
   expect(res.ok()).toBeTruthy();
   await page.goto("/");
+}
+
+/** Completa l'onboarding da /benvenuto; l'app poi prosegue da sola. */
+export async function completeOnboarding(page: Page, name: string, timezone: string) {
+  await expect(page).toHaveURL(/\/benvenuto/);
+  await page.getByLabel("Nome").fill(name);
+  await page.getByLabel("ambra").check();
+  await page.getByLabel("Fuso orario").selectOption(timezone);
+  await page.getByRole("button", { name: "Continua" }).click();
+}
+
+/** Crea un invito dall'interfaccia e restituisce il link da condividere. */
+export async function createInviteLink(page: Page, revealTime: string): Promise<string> {
+  await page.goto("/invita");
+  await page.getByLabel("Orario").selectOption(revealTime);
+  await page.getByRole("button", { name: "Crea il link" }).click();
+  const field = page.getByLabel("Link dell'invito");
+  await expect(field).toBeVisible();
+  return field.inputValue();
+}
+
+/** Apre un invito da non loggati: login col magic link e onboarding riportano all'invito. */
+export async function openInviteAsNewUser(
+  page: Page,
+  link: string,
+  user: { email: string; name: string; timezone: string },
+) {
+  await page.goto(link);
+  await expect(page).toHaveURL(/\/accedi\?next=/);
+  await requestAndOpenMagicLink(page, user.email);
+  await completeOnboarding(page, user.name, user.timezone);
+  await expect(page).toHaveURL(link);
+}
+
+/**
+ * Azzera il limite di Better Auth (5 magic link al minuto per IP): qui tutti arrivano da localhost.
+ * Da usare in un beforeEach nei test che fanno più login.
+ */
+export async function resetAuthRateLimit() {
+  const client = postgres(process.env.DATABASE_URL_E2E ?? "", { max: 1, onnotice: () => {} });
+  try {
+    await client`DELETE FROM "rate_limit"`;
+  } finally {
+    await client.end();
+  }
 }

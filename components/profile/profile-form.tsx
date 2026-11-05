@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import type { AccessResult } from "@/lib/access/errors";
 import { COLORS } from "@/lib/lanterns/constants";
 
-type Props = { defaultName: string; defaultColor: string | null };
+type Props = { defaultName: string; defaultColor: string | null; next?: string | null };
 
 type DeviceZones = { local: string; all: string[] };
 const NO_ZONES: DeviceZones = { local: "", all: [] };
@@ -23,7 +23,7 @@ function readDeviceZones(): DeviceZones {
 }
 const subscribe = () => () => {};
 
-export function ProfileForm({ defaultName, defaultColor }: Props) {
+export function ProfileForm({ defaultName, defaultColor, next }: Props) {
   const [state, formAction, pending] = useActionState(
     async (_prev: AccessResult<void> | null, formData: FormData) => updateProfileAction(formData),
     null,
@@ -35,6 +35,7 @@ export function ProfileForm({ defaultName, defaultColor }: Props) {
 
   return (
     <form action={formAction} className="space-y-6">
+      {next && <input type="hidden" name="next" value={next} />}
       <label className="block space-y-1">
         <span className="text-sm font-medium">Nome</span>
         <input
