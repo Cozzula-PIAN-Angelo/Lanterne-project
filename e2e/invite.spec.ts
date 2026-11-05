@@ -25,7 +25,7 @@ test("un invito collega due persone e si può usare una volta sola", async ({ br
     name: "Luca",
     timezone: "America/New_York",
   });
-  await expect(luca.getByText("Anna ti invita: le lanterne arrivano alle 21:30")).toBeVisible();
+  await expect(luca.getByRole("heading", { name: "Anna ti invita: le lanterne arrivano alle 21:30" })).toBeVisible();
   await luca.getByRole("button", { name: "Accetta" }).click();
   await expect(luca).toHaveURL(/\/$/);
   await expect(luca.getByText("Anna", { exact: true }).filter({ visible: true })).toBeVisible();

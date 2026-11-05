@@ -72,10 +72,10 @@ test("le lanterne restano sigillate fino all'orario, poi si leggono e si conserv
   await completeOnboarding(sara, "Sara", "Europe/Rome");
   await expect(sara.getByRole("heading", { name: "Le tue persone" })).toBeVisible();
   const other = await sara.goto(channel);
-  await expect(sara.getByText("Qui non c'è niente.")).toBeVisible();
+  await expect(sara.getByRole("heading", { name: "Qui non c'è niente." })).toBeVisible();
   await expect(sara.getByText(TRAMONTO)).toHaveCount(0);
   const missing = await sara.goto("/persone/non-esiste");
-  await expect(sara.getByText("Qui non c'è niente.")).toBeVisible();
+  await expect(sara.getByRole("heading", { name: "Qui non c'è niente." })).toBeVisible();
   expect(other?.status()).toBe(missing?.status());
 });
 
