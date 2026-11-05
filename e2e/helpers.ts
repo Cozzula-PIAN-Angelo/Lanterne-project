@@ -50,6 +50,8 @@ export async function loginAsDemo(page: Page, email: string) {
 /** Completa l'onboarding da /benvenuto; l'app poi prosegue da sola. */
 export async function completeOnboarding(page: Page, name: string, timezone: string) {
   await expect(page).toHaveURL(/\/benvenuto/);
+  // Le opzioni del fuso esistono solo nel browser: un valore vuol dire che la pagina è idratata.
+  await expect(page.getByLabel("Fuso orario")).not.toHaveValue("");
   await page.getByLabel("Nome").fill(name);
   await page.getByLabel("ambra").check();
   await page.getByLabel("Fuso orario").selectOption(timezone);
