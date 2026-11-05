@@ -288,3 +288,12 @@ che riproduce il problema:
 - **Senza microfono l'app funziona lo stesso:** con il permesso negato o un browser senza
   `MediaRecorder` resta tutto il resto, con una spiegazione calma.
 - **Nei test:** Chromium usa un microfono finto, e il vocale passa davvero dallo storage.
+
+### Task 4 — Foto
+- **La foto si prepara sul telefono:** `compressPhoto` la ridisegna su un canvas, al massimo a 2048 px.
+  Questo toglie anche i metadati EXIF, compresa la posizione GPS. Il test usa una foto con EXIF vero e
+  verifica i byte che arrivano al destinatario.
+- **Orientamento e trasparenza:** il ridisegno rispetta l'orientamento di scatto e riempie di bianco le
+  parti trasparenti, che in JPEG diventerebbero nere.
+- **Formati non leggibili:** se il browser non riesce ad aprire il file, la persona riceve un messaggio
+  calmo e può sceglierne un altro.

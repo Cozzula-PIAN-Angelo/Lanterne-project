@@ -1,3 +1,4 @@
+import { readFileSync } from "node:fs";
 import { expect, test, type Page } from "@playwright/test";
 import { computeRevealAt } from "@/lib/time/lantern-times";
 import { closeContexts, connectPair, resetAuthRateLimit, setClockOffset } from "./helpers";
@@ -90,4 +91,39 @@ test("il browser senza MediaRecorder avvisa e nasconde il pulsante", async ({ br
   await expect(anna.getByText("Questo browser non può registrare")).toBeVisible();
   await expect(anna.getByRole("button", { name: "Registra" })).toHaveCount(0);
   await expect(anna.getByLabel("La tua lanterna")).toBeVisible();
+});
+
+test("una foto arriva ricompressa e senza EXIF", async ({ browser }) => {
+  const FIXTURE = "e2e/fixtures/photo-exif.jpg";
+  expect(readFileSync(FIXTURE).toString("latin1")).toContain("Exif");
+
+  const { anna, luca } = await connectPair(browser, "foto");
+  const channel = await openChannel(anna, "Luca");
+  await anna.getByLabel("Aggiungi una foto").setInputFiles(FIXTURE);
+
+  const mine = anna.getByRole("region", { name: "Le tue lanterne" });
+  await expect(mine.getByText("Foto", { exact: true })).toBeVisible();
+
+  await setClockOffset(luca, offsetToArrival());
+  await luca.goto(channel);
+  const arrived = luca.getByRole("region", { name: "Arrivate" });
+  await arrived.getByRole("button", { name: /^Apri: Foto di Anna/ }).click();
+  const image = arrived.getByRole("img", { name: /^Foto di Anna/ });
+  await expect(image).toBeVisible();
+  await expect.poll(() => image.evaluate((img: HTMLImageElement) => img.naturalWidth)).toBe(2048);
+  expect(await image.evaluate((img: HTMLImageElement) => img.naturalHeight)).toBe(1024);
+
+  const res = await luca.request.get((await image.getAttribute("src"))!);
+  const bytes = await res.body();
+  expect(bytes.subarray(0, 2).toString("hex")).toBe("ffd8");
+  expect(bytes.toString("latin1")).not.toContain("Exif");
+  expect(bytes.toString("latin1")).not.toContain("GPS-LANTERNE-TEST");
+});
+
+test("un file che non è un'immagine dà un messaggio calmo", async ({ browser }) => {
+  const { anna } = await connectPair(browser, "nonfoto");
+  await openChannel(anna, "Luca");
+  await anna.getByLabel("Aggiungi una foto").setInputFiles("e2e/fixtures/not-a-photo.txt");
+  await expect(anna.getByRole("alert").filter({ hasText: "non si riesce ad aprire" })).toBeVisible();
+  await expect(anna.getByRole("region", { name: "Le tue lanterne" })).toHaveCount(0);
 });
