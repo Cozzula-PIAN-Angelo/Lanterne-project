@@ -1,0 +1,2 @@
+ALTER TABLE "connections" DROP CONSTRAINT "connections_user_order";--> statement-breakpoint
+ALTER TABLE "connections" ADD CONSTRAINT "connections_user_order" CHECK ("connections"."user_a_id" COLLATE "C" < "connections"."user_b_id" COLLATE "C");
