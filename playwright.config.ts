@@ -10,7 +10,17 @@ export default defineConfig({
   fullyParallel: false,
   workers: 1,
   use: { baseURL: BASE_URL, trace: "retain-on-failure" },
-  projects: [{ name: "mobile", use: { ...devices["Pixel 7"] } }],
+  projects: [
+    {
+      name: "mobile",
+      use: {
+        ...devices["Pixel 7"],
+        launchOptions: {
+          args: ["--use-fake-device-for-media-stream", "--use-fake-ui-for-media-stream"],
+        },
+      },
+    },
+  ],
   webServer: {
     command: `pnpm dev --port ${PORT}`,
     url: BASE_URL,

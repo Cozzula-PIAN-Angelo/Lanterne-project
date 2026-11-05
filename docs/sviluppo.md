@@ -276,3 +276,15 @@ che riproduce il problema:
   può dimenticare un file, e la tabella è il lavoro che il worker dovrà svolgere.
 - **La chiave del file resta sul server:** `LanternView` espone tipo e durata, mentre l'URL firmato si
   chiede con `getMediaUrl`, che applica le stesse regole di visibilità delle lanterne.
+
+### Task 3 — Registrazione e ascolto dei vocali
+- **Registrare è il gesto principale del canale:** `AudioRecorder` sceglie il formato più compatibile
+  disponibile, si ferma da solo a 10 minuti e libera subito il microfono.
+- **`uploadMedia`** distingue i problemi di rete dai rifiuti del server, una base che servirà alla coda
+  offline. Per ora un errore di rete viene solo segnalato.
+- **L'URL si chiede al tocco:** `MediaPlayer` chiama il server solo quando la persona preme "Ascolta".
+  Se il collegamento scade dopo 5 minuti, un nuovo tocco ne chiede un altro.
+- **Accessibilità:** il pulsante si legge come "Ascolta: Vocale di Anna, 3 minuti, delle 9:14".
+- **Senza microfono l'app funziona lo stesso:** con il permesso negato o un browser senza
+  `MediaRecorder` resta tutto il resto, con una spiegazione calma.
+- **Nei test:** Chromium usa un microfono finto, e il vocale passa davvero dallo storage.

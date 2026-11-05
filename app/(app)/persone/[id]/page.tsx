@@ -53,7 +53,13 @@ export default async function ChannelPage({ params }: PageProps<"/persone/[id]">
         <Section title="Arrivate">
           <ul className="space-y-3">
             {arrived.map((lantern) => (
-              <ArrivedLantern key={lantern.id} lantern={lantern} connectionId={connectionId} viewerTz={viewerTz} />
+              <ArrivedLantern
+                key={lantern.id}
+                lantern={lantern}
+                connectionId={connectionId}
+                viewerTz={viewerTz}
+                senderName={partner.name}
+              />
             ))}
           </ul>
         </Section>
@@ -99,7 +105,7 @@ export default async function ChannelPage({ params }: PageProps<"/persone/[id]">
         <Section title="Ricordi">
           <ul className="space-y-3">
             {memories.map((lantern) => (
-              <MemoryLantern key={lantern.id} lantern={lantern} viewerTz={viewerTz} />
+              <MemoryLantern key={lantern.id} lantern={lantern} viewerTz={viewerTz} senderName={partner.name} />
             ))}
           </ul>
         </Section>

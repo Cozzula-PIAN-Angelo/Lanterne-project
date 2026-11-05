@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { sendTextAction, sendThoughtAction } from "@/app/(app)/actions/lanterns";
+import { AudioRecorder } from "@/components/audio-recorder";
 import { Button } from "@/components/ui/button";
 import { useActionForm } from "@/components/use-action-form";
 import { TEXT_MAX, THOUGHTS } from "@/lib/lanterns/constants";
@@ -18,6 +19,8 @@ export function LanternComposer({ connectionId }: { connectionId: string }) {
 
   return (
     <div className="space-y-4">
+      <AudioRecorder connectionId={connectionId} />
+
       <form action={textAction} className="space-y-2">
         <input type="hidden" name="connectionId" value={connectionId} />
         <label className="block space-y-1">
