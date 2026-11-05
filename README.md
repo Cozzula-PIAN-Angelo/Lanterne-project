@@ -9,8 +9,10 @@ all'orario che avete concordato, nell'ora locale di chi la riceve.
 ## Prerequisiti
 
 - Node LTS e pnpm
-- PostgreSQL e Mailpit, con Docker (`docker compose up -d`) oppure installati a mano. Il database
-  deve rispondere sulla porta **5433**, con gli utenti e i database di `docker/postgres-init.sql`.
+- PostgreSQL, Mailpit e uno storage S3 (SeaweedFS), con Docker (`docker compose up -d`) oppure installati a mano. Il
+  database deve rispondere sulla porta **5433**, con gli utenti e i database di
+  `docker/postgres-init.sql`. Senza Docker, installa `weed`
+  dalle [release di SeaweedFS](https://github.com/seaweedfs/seaweedfs/releases) e avvialo con `pnpm s3`.
 
 ## Avvio rapido
 

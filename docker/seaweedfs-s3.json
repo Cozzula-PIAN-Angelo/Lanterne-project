@@ -1,0 +1,9 @@
+{
+  "identities": [
+    {
+      "name": "lanterne",
+      "credentials": [{ "accessKey": "lanterne", "secretKey": "lanterne-dev" }],
+      "actions": ["Admin", "Read", "Write", "List", "Tagging"]
+    }
+  ]
+}

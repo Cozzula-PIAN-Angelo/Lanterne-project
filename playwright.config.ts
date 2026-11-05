@@ -18,6 +18,7 @@ export default defineConfig({
     timeout: 180_000,
     env: {
       DATABASE_URL: process.env.DATABASE_URL_E2E ?? "",
+      S3_BUCKET: process.env.S3_BUCKET_E2E ?? "",
       BETTER_AUTH_URL: BASE_URL,
       DEMO_LOGIN: "true",
     },

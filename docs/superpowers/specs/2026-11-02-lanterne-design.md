@@ -90,7 +90,7 @@ Non è una chat e non vuole sostituire WhatsApp o altri social: è un **rituale 
 |---|---|
 | Frontend + backend | Next.js (App Router), TypeScript, Server Components, Server Actions, Route Handlers |
 | Database | PostgreSQL + Drizzle ORM |
-| Media | Storage compatibile S3: **MinIO** in locale, Cloudflare R2 / AWS S3 in un eventuale deploy |
+| Media | Storage compatibile S3: **SeaweedFS** in locale, Cloudflare R2 / AWS S3 in un eventuale deploy |
 | Autenticazione | Better Auth (plugin magic link, adattatore Drizzle), sessioni nel database |
 | Email in locale | Mailpit |
 | Lavori pianificati | Processo worker Node con **pg-boss** (coda su PostgreSQL, niente Redis) |
@@ -113,7 +113,7 @@ lanterne/
     time/           logica sul tempo: funzioni pure
     access/         unico modulo che decide "chi vede cosa"
     db/             schema Drizzle + migrazioni
-    storage/        S3/MinIO, URL firmati
+    storage/        S3, URL firmati
     push/           web push
   worker/           lavori pg-boss
   e2e/              test Playwright
@@ -336,7 +336,7 @@ Sviluppo guidato dai test (TDD).
 
 - **Unit (Vitest) su `lib/time`:** tabelle di casi con fusi diversi (Roma/New York), mezzanotte, cambio d'ora legale, invio un minuto prima o dopo l'apertura, finestra minima di 8 ore, cambio d'orario "dal giorno dopo", fasi del cielo con e senza posizione, tramonto reale dopo l'apertura.
 - **Integrazione su `lib/access`** contro PostgreSQL reale in Docker. Ad esempio: il destinatario non vede prima di `revealAt`; un esterno non vede mai nulla; il mittente non può eliminare dopo `revealAt`; dopo il blocco spariscono le lanterne salvate; una lanterna non `savable` non si può conservare; limite di 5 connessioni.
-- **Integrazione** su Server Actions, Route Handlers e lavori del worker, con PostgreSQL e MinIO reali.
+- **Integrazione** su Server Actions, Route Handlers e lavori del worker, con PostgreSQL e SeaweedFS reali.
 - **End-to-end (Playwright)** con viewport mobile: invito → accettazione → invio testo e vocale (microfono finto di Chromium) → avanzamento dell'orologio → arrivo → reazione → salvataggio.
 - **`Clock` iniettabile** in tutti i livelli di test.
 - **CI con GitHub Actions:** lint, typecheck, unit, integrazione, e2e.
@@ -345,7 +345,7 @@ Sviluppo guidato dai test (TDD).
 
 ## 13. Setup locale e documentazione
 
-- `docker compose up` avvia PostgreSQL, MinIO (con il bucket creato automaticamente) e Mailpit.
+- `docker compose up` avvia PostgreSQL, SeaweedFS (con il bucket creato automaticamente) e Mailpit.
 - `pnpm setup` installa, crea `.env` da `.env.example`, genera le chiavi VAPID, esegue le migrazioni e carica i dati demo.
 - `pnpm dev` avvia insieme app e worker.
 - **Dati demo:** Giulia, Marco e Sara, con connessioni e lanterne in stati diversi (in preparazione, arrivate, conservate).

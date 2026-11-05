@@ -21,7 +21,7 @@ export default defineConfig({
           environment: "node",
           fileParallelism: false,
           globalSetup: ["tests/helpers/global-setup.ts"],
-          env: { ...env, DATABASE_URL: env.DATABASE_URL_TEST ?? "" },
+          env: { ...env, DATABASE_URL: env.DATABASE_URL_TEST ?? "", S3_BUCKET: env.S3_BUCKET_TEST ?? "" },
         },
       },
     ],

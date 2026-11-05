@@ -249,5 +249,17 @@ che riproduce il problema:
 
 ---
 
-**Stato:** 83 test di integrazione, 78 unit e 13 e2e verdi. Prossimo passo: PR `piano-1` → `main`,
-poi il Piano 2.
+**Stato del Piano 1:** 83 test di integrazione, 78 unit e 13 e2e verdi, unito in `main`.
+
+## Piano 2 — Media, worker e PWA
+
+### Task 1 — Storage S3
+- **`createStorage`** parla con qualunque storage compatibile S3: in locale SeaweedFS, sulla porta 9000.
+  MinIO era la prima scelta, ma la versione attuale richiede una licenza anche in locale.
+- **Il limite sta nella firma:** l'URL di upload include dimensione e tipo, quindi un file diverso da
+  quello dichiarato viene rifiutato dallo storage. Non si usa il POST firmato perché Cloudflare R2,
+  una possibile destinazione futura, non lo supporta.
+- **Due client S3:** l'host fa parte della firma, quindi gli URL per il browser nascono con
+  `S3_PUBLIC_ENDPOINT`, mentre il server può raggiungere lo storage da un altro indirizzo.
+- **`pnpm run setup` aggiorna anche un `.env` esistente:** aggiunge le chiavi nuove, genera la coppia
+  VAPID e crea i tre bucket, senza toccare i valori già impostati.

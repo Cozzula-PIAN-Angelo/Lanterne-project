@@ -2,6 +2,7 @@ import "dotenv/config";
 import { drizzle } from "drizzle-orm/postgres-js";
 import { migrate } from "drizzle-orm/postgres-js/migrator";
 import postgres from "postgres";
+import { createStorage } from "../lib/storage/s3";
 import { MAILPIT } from "./helpers";
 
 export default async function globalSetup() {
@@ -17,5 +18,6 @@ export default async function globalSetup() {
   } finally {
     await client.end();
   }
+  await createStorage({ ...process.env, S3_BUCKET: process.env.S3_BUCKET_E2E }).ensureBucket();
   await fetch(`${MAILPIT}/api/v1/messages`, { method: "DELETE" });
 }

@@ -2,6 +2,7 @@ import "dotenv/config";
 import { drizzle } from "drizzle-orm/postgres-js";
 import { migrate } from "drizzle-orm/postgres-js/migrator";
 import postgres from "postgres";
+import { createStorage } from "../../lib/storage/s3";
 
 export default async function setup() {
   const url = process.env.DATABASE_URL_TEST;
@@ -12,4 +13,5 @@ export default async function setup() {
   } finally {
     await client.end();
   }
+  await createStorage({ ...process.env, S3_BUCKET: process.env.S3_BUCKET_TEST }).ensureBucket();
 }
