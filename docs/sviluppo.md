@@ -263,3 +263,16 @@ che riproduce il problema:
   `S3_PUBLIC_ENDPOINT`, mentre il server può raggiungere lo storage da un altro indirizzo.
 - **`pnpm run setup` aggiorna anche un `.env` esistente:** aggiunge le chiavi nuove, genera la coppia
   VAPID e crea i tre bucket, senza toccare i valori già impostati.
+
+### Task 2 — Lanterne multimediali in `lib/access`
+- **Tre passaggi:** `createMediaLantern` crea la riga `uploading` e firma l'upload, il browser carica il
+  file direttamente sullo storage, `confirmMediaLantern` controlla il file e porta la riga a `ready`.
+- **Il file viene controllato davvero:** se dimensione o tipo non corrispondono a quanto dichiarato,
+  la lanterna viene eliminata. Il destinatario vede solo righe `ready`, mai un upload a metà.
+- **Tetto dell'audio:** 60 minuti al giorno per connessione e mittente, nel giorno locale del mittente.
+  Gli upload rimasti aperti contano per i 5 minuti in cui l'URL è valido, poi non consumano più.
+- **Un trigger per i file:** ogni riga eliminata con un `media_key` finisce in `storage_deletions`,
+  anche quando la cancellazione arriva a cascata da un utente o da una connessione. Nessun percorso
+  può dimenticare un file, e la tabella è il lavoro che il worker dovrà svolgere.
+- **La chiave del file resta sul server:** `LanternView` espone tipo e durata, mentre l'URL firmato si
+  chiede con `getMediaUrl`, che applica le stesse regole di visibilità delle lanterne.

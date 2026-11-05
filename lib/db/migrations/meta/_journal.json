@@ -22,6 +22,20 @@
       "when": 1793653974047,
       "tag": "0002_red_preak",
       "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "7",
+      "when": 1793900840967,
+      "tag": "0003_careless_starfox",
+      "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1793900842640,
+      "tag": "0004_storage_deletion_trigger",
+      "breakpoints": true
     }
   ]
 }

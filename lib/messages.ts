@@ -16,6 +16,9 @@ const MESSAGES: Partial<Record<AccessErrorCode, string>> = {
   not_savable: "Chi l'ha inviata ha scelto di non farla conservare.",
   rate_limited: "Piano piano: riprova tra qualche minuto.",
   invalid_reveal_time: "Scegli un orario tra le 17:00 e mezzanotte.",
+  audio_cap_reached: "Per oggi il lago è pieno.",
+  upload_missing: "Il file non è arrivato, riproviamo.",
+  upload_invalid: "Questo file non si può inviare.",
 };
 
 const FALLBACK = "Qualcosa non è andato, riproviamo tra poco.";

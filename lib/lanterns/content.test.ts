@@ -10,6 +10,11 @@ describe("lanternContent", () => {
     expect(lanternContent({ type: "text", text: "ti-penso" })).toBe("ti-penso");
   });
 
+  it("vocali e foto si descrivono a parole", () => {
+    expect(lanternContent({ type: "audio", text: null, durationSec: 180 })).toBe("Vocale, 3 minuti");
+    expect(lanternContent({ type: "photo", text: null })).toBe("Foto");
+  });
+
   it("senza contenuto restituisce una stringa vuota", () => {
     expect(lanternContent({ type: "text", text: null })).toBe("");
   });

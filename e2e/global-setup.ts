@@ -12,7 +12,7 @@ export default async function globalSetup() {
   try {
     await migrate(drizzle(client), { migrationsFolder: "lib/db/migrations" });
     await client.unsafe(
-      `TRUNCATE "lanterns", "connections", "invites", "blocks", "rate_limits",
+      `TRUNCATE "lanterns", "connections", "invites", "blocks", "rate_limits", "storage_deletions",
         "session", "account", "verification", "rate_limit", "user" CASCADE`,
     );
   } finally {

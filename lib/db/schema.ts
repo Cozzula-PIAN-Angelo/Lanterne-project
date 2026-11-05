@@ -115,6 +115,12 @@ export const blocks = pgTable(
   (t) => [primaryKey({ columns: [t.blockerId, t.blockedId] })],
 );
 
+/** File da togliere dallo storage: la scrive un trigger su `lanterns`, la svuota il worker. */
+export const storageDeletions = pgTable("storage_deletions", {
+  key: text("key").primaryKey(),
+  createdAt: instant("created_at").notNull().defaultNow(),
+});
+
 export const rateLimits = pgTable("rate_limits", {
   key: text("key").primaryKey(),
   windowStart: instant("window_start").notNull(),

@@ -24,6 +24,7 @@ const TABLES = [
   "invites",
   "blocks",
   "rate_limits",
+  "storage_deletions",
   "session",
   "account",
   "verification",
