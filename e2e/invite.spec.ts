@@ -4,10 +4,12 @@ import {
   createInviteLink,
   loginWithMagicLink,
   openInviteAsNewUser,
+  closeContexts,
   resetAuthRateLimit,
 } from "./helpers";
 
 test.beforeEach(resetAuthRateLimit);
+test.afterEach(closeContexts);
 
 test("un invito collega due persone e si può usare una volta sola", async ({ browser }) => {
   const anna = await (await browser.newContext()).newPage();

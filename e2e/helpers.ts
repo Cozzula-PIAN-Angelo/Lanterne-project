@@ -118,3 +118,8 @@ export async function setClockOffset(page: Page, offsetMs: number) {
     { name: "lanterne-dev-offset", value: String(offsetMs), url: test.info().project.use.baseURL! },
   ]);
 }
+
+/** Per un afterEach: chiude i contesti aperti dal test, che altrimenti restano vivi per tutta la suite. */
+export async function closeContexts({ browser }: { browser: Browser }) {
+  await Promise.all(browser.contexts().map((context) => context.close()));
+}

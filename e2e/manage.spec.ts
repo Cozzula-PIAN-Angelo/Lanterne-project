@@ -5,10 +5,12 @@ import {
   connectPair,
   createInviteLink,
   loginWithMagicLink,
+  closeContexts,
   resetAuthRateLimit,
 } from "./helpers";
 
 test.beforeEach(resetAuthRateLimit);
+test.afterEach(closeContexts);
 
 /** Quanto spostare l'orologio per essere alle 10:00 di Roma di oggi: il test non dipende dall'ora in cui gira. */
 function offsetToRomeMorning() {

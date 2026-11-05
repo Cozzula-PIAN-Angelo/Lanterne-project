@@ -4,11 +4,13 @@ import {
   completeOnboarding,
   connectPair,
   loginWithMagicLink,
+  closeContexts,
   resetAuthRateLimit,
   setClockOffset,
 } from "./helpers";
 
 test.beforeEach(resetAuthRateLimit);
+test.afterEach(closeContexts);
 
 const TRAMONTO = "il tramonto dal tram oggi era assurdo";
 
