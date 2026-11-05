@@ -1,4 +1,6 @@
+import Link from "next/link";
 import { notFound } from "next/navigation";
+import { ConnectionMenu } from "@/components/connection-menu";
 import { Countdown } from "@/components/countdown";
 import { LanternComposer } from "@/components/lantern-composer";
 import { ArrivedLantern, MemoryLantern, SentLantern } from "@/components/lantern-item";
@@ -35,9 +37,14 @@ export default async function ChannelPage({ params }: PageProps<"/persone/[id]">
 
   return (
     <div className="space-y-8">
-      <header className="flex items-center gap-2">
-        <span aria-hidden className="size-3 rounded-full" style={{ backgroundColor: partner.color }} />
-        <h1 className="text-2xl font-semibold">{partner.name}</h1>
+      <header className="space-y-1">
+        <Link href="/" className="text-sm underline underline-offset-4">
+          Le tue persone
+        </Link>
+        <div className="flex items-center gap-2">
+          <span aria-hidden className="size-3 rounded-full" style={{ backgroundColor: partner.color }} />
+          <h1 className="text-2xl font-semibold">{partner.name}</h1>
+        </div>
       </header>
 
       {status === "ended" && <p>Questa connessione è chiusa.</p>}
@@ -91,6 +98,17 @@ export default async function ChannelPage({ params }: PageProps<"/persone/[id]">
             ))}
           </ul>
         </Section>
+      )}
+
+      {status !== "ended" && (
+        <ConnectionMenu
+          connectionId={connectionId}
+          partnerName={partner.name}
+          status={status}
+          revealTime={connection.revealTime}
+          proposedRevealTime={connection.proposedRevealTime}
+          proposedByMe={connection.proposedByMe}
+        />
       )}
     </div>
   );

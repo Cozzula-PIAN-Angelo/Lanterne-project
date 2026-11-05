@@ -28,3 +28,15 @@ export async function saveProfile(
   await db.update(user).set(parsed.data).where(eq(user.id, userId));
   return ok(undefined);
 }
+
+export async function updateTimezone(db: Db, userId: string, tz: string): Promise<AccessResult<void>> {
+  if (!isValidTimeZone(tz)) return fail("invalid_input");
+  await db.update(user).set({ timezone: tz }).where(eq(user.id, userId));
+  return ok(undefined);
+}
+
+/** Vale per le lanterne inviate da ora in poi: le altre tengono la scelta di quando sono partite. */
+export async function setAllowSaving(db: Db, userId: string, value: boolean): Promise<AccessResult<void>> {
+  await db.update(user).set({ allowSaving: value }).where(eq(user.id, userId));
+  return ok(undefined);
+}

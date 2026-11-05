@@ -6,7 +6,14 @@ import { Button } from "@/components/ui/button";
 import type { AccessResult } from "@/lib/access/errors";
 import { COLORS } from "@/lib/lanterns/constants";
 
-type Props = { defaultName: string; defaultColor: string | null; next?: string | null };
+type Props = {
+  defaultName: string;
+  defaultColor: string | null;
+  /** Il fuso già salvato; senza, si propone quello del dispositivo. */
+  defaultTimezone?: string;
+  next?: string | null;
+  submitLabel?: string;
+};
 
 type DeviceZones = { local: string; all: string[] };
 const NO_ZONES: DeviceZones = { local: "", all: [] };
@@ -23,7 +30,7 @@ function readDeviceZones(): DeviceZones {
 }
 const subscribe = () => () => {};
 
-export function ProfileForm({ defaultName, defaultColor, next }: Props) {
+export function ProfileForm({ defaultName, defaultColor, defaultTimezone, next, submitLabel = "Continua" }: Props) {
   const [state, formAction, pending] = useActionState(
     async (_prev: AccessResult<void> | null, formData: FormData) => updateProfileAction(formData),
     null,
@@ -31,7 +38,8 @@ export function ProfileForm({ defaultName, defaultColor, next }: Props) {
   const [color, setColor] = useState(defaultColor ?? COLORS[0].hex);
   const zones = useSyncExternalStore(subscribe, readDeviceZones, () => NO_ZONES);
   const [chosenZone, setChosenZone] = useState<string | null>(null);
-  const timezone = chosenZone ?? zones.local;
+  const timezone = chosenZone ?? defaultTimezone ?? zones.local;
+  const zoneOptions = !timezone || zones.all.includes(timezone) ? zones.all : [timezone, ...zones.all];
 
   return (
     <form action={formAction} className="space-y-6">
@@ -79,7 +87,7 @@ export function ProfileForm({ defaultName, defaultColor, next }: Props) {
           onChange={(e) => setChosenZone(e.target.value)}
           className="w-full rounded-lg border px-3 py-2"
         >
-          {zones.all.map((z) => (
+          {zoneOptions.map((z) => (
             <option key={z} value={z}>
               {z.replaceAll("_", " ")}
             </option>
@@ -94,7 +102,7 @@ export function ProfileForm({ defaultName, defaultColor, next }: Props) {
       )}
 
       <Button type="submit" size="lg" disabled={pending || !timezone} className="w-full">
-        Continua
+        {submitLabel}
       </Button>
     </form>
   );

@@ -14,7 +14,12 @@ export default async function HomePage() {
 
   return (
     <section className="space-y-4">
-      <h1 className="text-2xl font-semibold">Le tue persone</h1>
+      <header className="flex items-baseline justify-between gap-3">
+        <h1 className="text-2xl font-semibold">Le tue persone</h1>
+        <Link href="/impostazioni" className="text-sm underline underline-offset-4">
+          Impostazioni
+        </Link>
+      </header>
       <ul className="space-y-3">
         {connections.map((connection) => (
           <ConnectionCard

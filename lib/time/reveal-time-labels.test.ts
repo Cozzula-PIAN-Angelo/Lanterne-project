@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { atRevealTime, ofRevealTime } from "./format";
+import { atRevealTime, ofRevealTime, revealTimeName } from "./format";
 import { isAllowedRevealTime, revealTimeOptions } from "./reveal-time";
 
 describe("etichette di un orario di apertura", () => {
@@ -26,5 +26,12 @@ describe("revealTimeOptions", () => {
 
   it("propone solo orari consentiti", () => {
     expect(revealTimeOptions().every((o) => isAllowedRevealTime(o.value))).toBe(true);
+  });
+});
+
+describe("revealTimeName", () => {
+  it("si legge dopo un verbo, senza mai scrivere 00:00", () => {
+    expect(revealTimeName("22:00")).toBe("le 22:00");
+    expect(revealTimeName("00:00")).toBe("mezzanotte");
   });
 });

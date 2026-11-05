@@ -1,10 +1,17 @@
 import { Suspense } from "react";
+import { TimezoneBanner } from "@/components/timezone-banner";
+import { isOnboarded } from "@/lib/access/profile";
 import { requireUser } from "@/lib/auth/session";
 
 // La sessione è un dato di richiesta: con Cache Components va letta dentro un <Suspense>.
 async function SignedIn({ children }: { children: React.ReactNode }) {
-  await requireUser();
-  return children;
+  const user = await requireUser();
+  return (
+    <>
+      {isOnboarded({ color: user.color ?? null }) && <TimezoneBanner userTz={user.timezone ?? "UTC"} />}
+      {children}
+    </>
+  );
 }
 
 export default function AppLayout({ children }: LayoutProps<"/">) {

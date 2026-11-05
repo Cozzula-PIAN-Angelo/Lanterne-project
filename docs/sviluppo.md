@@ -206,7 +206,18 @@ riproduce il problema:
   legge in streaming e, secondo la documentazione di Next.js, a quel punto lo status non cambia
   più. Nessuna risposta rivela se la connessione esiste.
 
+### Task 14 — Impostazioni, gestione della connessione e banner del fuso
+- **`/impostazioni`:** profilo, permesso di conservare le proprie lanterne (vale solo per quelle
+  future), persone bloccate e uscita.
+- **Menu della connessione:** cambio d'orario, che vale dal giorno dopo se l'altra persona accetta,
+  più chiusura e blocco con conferma nella pagina. Chi bloccare si ricava dalla connessione sul
+  server: non è il browser a indicarlo.
+- **Banner del fuso:** se il dispositivo è in un altro fuso, l'app chiede "Sei a Tokyo?". Il "no"
+  resta in `localStorage`, e il banner funziona anche se `localStorage` non è disponibile.
+- **Uscita con ricarica completa:** le pagine già visitate restano in memoria, nascoste da
+  `<Activity>`, e su un dispositivo condiviso non devono sopravvivere al logout.
+
 ---
 
-**Stato:** 73 test di integrazione, 64 unit e 5 e2e verdi. Prossimo passo: Task 14 (impostazioni,
-gestione della connessione e banner del fuso).
+**Stato:** 76 test di integrazione, 65 unit e 9 e2e verdi. Prossimo passo: Task 15 (dati demo, setup
+in un comando e pannello "viaggio nel tempo").

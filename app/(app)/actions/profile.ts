@@ -1,5 +1,6 @@
 "use server";
 
+import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import type { AccessResult } from "@/lib/access/errors";
 import { saveProfile } from "@/lib/access/profile";
@@ -14,6 +15,8 @@ export async function updateProfileAction(formData: FormData): Promise<AccessRes
     color: formData.get("color"),
     timezone: formData.get("timezone"),
   });
-  if (result.ok) redirect(safeNextPath(formData.get("next")) ?? "/");
-  return result;
+  if (!result.ok) return result;
+  // Il nome, il colore e il fuso si leggono anche nel layout, che resta montato tra le pagine.
+  revalidatePath("/", "layout");
+  redirect(safeNextPath(formData.get("next")) ?? "/");
 }

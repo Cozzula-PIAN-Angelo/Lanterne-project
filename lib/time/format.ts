@@ -62,3 +62,8 @@ export function atRevealTime(time: string): string {
 export function ofRevealTime(time: string): string {
   return time === "00:00" ? "di mezzanotte" : `delle ${time}`;
 }
+
+/** "le 22:00" o "mezzanotte", da leggere dopo un verbo. */
+export function revealTimeName(time: string): string {
+  return time === "00:00" ? "mezzanotte" : `le ${time}`;
+}
