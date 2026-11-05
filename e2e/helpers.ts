@@ -1,4 +1,4 @@
-import { expect, type Page } from "@playwright/test";
+import { expect, type Browser, type Page } from "@playwright/test";
 import postgres from "postgres";
 
 // Con cacheComponents le pagine già visitate restano nel DOM, nascoste da <Activity>:
@@ -90,4 +90,29 @@ export async function resetAuthRateLimit() {
   } finally {
     await client.end();
   }
+}
+
+/** Anna (Roma) e Luca (New York), nuovi e collegati da un invito alle 21:30. `tag` rende unica l'email. */
+export async function connectPair(browser: Browser, tag: string) {
+  const anna = await (await browser.newContext()).newPage();
+  await loginWithMagicLink(anna, `anna.${tag}@test.local`);
+  await completeOnboarding(anna, "Anna", "Europe/Rome");
+  const link = await createInviteLink(anna, "21:30");
+
+  const luca = await (await browser.newContext()).newPage();
+  await openInviteAsNewUser(luca, link, {
+    email: `luca.${tag}@test.local`,
+    name: "Luca",
+    timezone: "America/New_York",
+  });
+  await luca.getByRole("button", { name: "Accetta" }).click();
+  await expect(luca).toHaveURL(/\/$/);
+  return { anna, luca };
+}
+
+/** Sposta l'orologio del server per questo browser (cookie di sviluppo). */
+export async function setClockOffset(page: Page, offsetMs: number) {
+  await page.context().addCookies([
+    { name: "lanterne-dev-offset", value: String(offsetMs), url: new URL(page.url()).origin },
+  ]);
 }

@@ -8,7 +8,7 @@ function localTime(at: Date, tz: string): string {
 }
 
 /** "alle 21:30", oppure "a mezzanotte" */
-function atTime(at: Date, tz: string): string {
+export function atTime(at: Date, tz: string): string {
   const time = localTime(at, tz);
   return time === "0:00" ? "a mezzanotte" : `alle ${time}`;
 }

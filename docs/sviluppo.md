@@ -191,6 +191,22 @@ riproduce il problema:
   nascoste da `<Activity>`, quindi i selettori di testo filtrano sugli elementi visibili. Il limite
   di 5 magic link al minuto per IP resta attivo: gli e2e azzerano il contatore prima di ogni test.
 
+### Task 13 — Il canale
+- **`/persone/[id]`** riunisce tutto ciò che riguarda una persona: lanterne arrivate, con reazioni
+  e "Conserva"; lanterne inviate, con l'orario di partenza e il conto alla rovescia; il composer
+  per testo e pensieri; i ricordi.
+- **Il server decide cosa si vede:** la pagina mostra solo ciò che restituisce `getChannel`, quindi
+  il testo di una lanterna sigillata non arriva mai al browser del destinatario.
+- **Il conto alla rovescia usa l'orologio del server:** al mount calcola la differenza dal
+  dispositivo, così un telefono con l'ora sbagliata non cambia il risultato.
+- **Il "viaggio nel tempo" nei test:** un cookie di sviluppo sposta l'orologio del server. L'e2e
+  porta Luca a un minuto dopo le 21:30 di New York e verifica che le lanterne si aprano.
+- **Connessioni altrui:** un estraneo vede la stessa pagina "Qui non c'è niente." di un id
+  inventato, con lo stesso status. Lo status è 200 e non 404: con Cache Components la sessione si
+  legge in streaming e, secondo la documentazione di Next.js, a quel punto lo status non cambia
+  più. Nessuna risposta rivela se la connessione esiste.
+
 ---
 
-**Stato:** 73 test di integrazione, 61 unit e 3 e2e verdi. Prossimo passo: Task 13 (il canale).
+**Stato:** 73 test di integrazione, 64 unit e 5 e2e verdi. Prossimo passo: Task 14 (impostazioni,
+gestione della connessione e banner del fuso).

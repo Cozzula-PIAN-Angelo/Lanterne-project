@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { AcceptProposalButton } from "@/components/accept-proposal-button";
 import type { ConnectionSummary } from "@/lib/access/connections";
 import { formatRevealLabel, ofRevealTime } from "@/lib/time/format";
@@ -10,7 +11,9 @@ export function ConnectionCard({ connection, viewerTz, now }: Props) {
     <li className="space-y-2 rounded-xl border p-4">
       <div className="flex items-center gap-2">
         <span aria-hidden className="size-3 rounded-full" style={{ backgroundColor: partner.color }} />
-        <span className="font-medium">{partner.name}</span>
+        <Link href={`/persone/${connection.id}`} className="font-medium underline-offset-4 hover:underline">
+          {partner.name}
+        </Link>
       </div>
       {connection.status === "active" && nextArrivalAt && (
         <p className="text-sm text-muted-foreground">
