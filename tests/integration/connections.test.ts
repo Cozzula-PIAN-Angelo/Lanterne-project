@@ -4,6 +4,7 @@ import {
   acceptProposal,
   endConnection,
   getConnectionForMember,
+  listClosedWithMemories,
   listConnections,
   proposeRevealTime,
   rejectProposal,
@@ -180,4 +181,38 @@ test("endConnection: le lanterne non salvate spariscono, le salvate restano", as
   expect(await connectionRow(c.id)).toMatchObject({ status: "ended", endedAt: now });
   const left = await db.select().from(lanterns).where(eq(lanterns.connectionId, c.id));
   expect(left.map((l) => l.id)).toEqual([saved.id]);
+});
+
+test("le connessioni chiuse si ritrovano solo se ti hanno lasciato dei ricordi", async () => {
+  const { a, b } = await pair();
+  const withMemory = await makeConnection(db, a, b, { status: "ended", endedAt: now });
+  await makeLantern(db, {
+    connectionId: withMemory.id,
+    senderId: b.id,
+    recipientId: a.id,
+    revealAt: now,
+    expiresAt: now,
+    savedAt: now,
+  });
+  const c = await makeUser(db, { name: "Carla" });
+  await makeConnection(db, a, c, { status: "ended", endedAt: now });
+
+  const closed = await listClosedWithMemories(db, { userId: a.id, now });
+  expect(closed.map((x) => x.partner.name)).toEqual(["Bruno"]);
+  // Il ricordo è di chi l'ha ricevuto: per chi l'ha mandato non c'è niente da ritrovare.
+  expect(await listClosedWithMemories(db, { userId: b.id, now })).toEqual([]);
+});
+
+test("una connessione aperta non è tra quelle chiuse, anche con dei ricordi", async () => {
+  const { a, b } = await pair();
+  const open = await makeConnection(db, a, b, { status: "active", revealTime: "21:30" });
+  await makeLantern(db, {
+    connectionId: open.id,
+    senderId: b.id,
+    recipientId: a.id,
+    revealAt: now,
+    expiresAt: now,
+    savedAt: now,
+  });
+  expect(await listClosedWithMemories(db, { userId: a.id, now })).toEqual([]);
 });

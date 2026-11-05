@@ -24,7 +24,8 @@ type Props = {
   proposedByMe: boolean;
 };
 
-function Proposal({ connectionId, partnerName, proposedRevealTime, proposedByMe }: Omit<Props, "status" | "revealTime">) {
+function Proposal({ connectionId, partnerName, status, proposedRevealTime, proposedByMe }: Omit<Props, "revealTime">) {
+  const [confirmingReject, setConfirmingReject] = useState(false);
   if (!proposedRevealTime) return null;
   const time = revealTimeName(proposedRevealTime);
   if (proposedByMe) return <p className="text-sm">Hai proposto {time}: aspettiamo {partnerName}.</p>;
@@ -40,23 +41,52 @@ function Proposal({ connectionId, partnerName, proposedRevealTime, proposedByMe 
         >
           Accetta
         </ActionButton>
-        <ActionButton action={rejectProposalAction} fields={{ connectionId }} variant="outline">
-          Rifiuta
-        </ActionButton>
+        {status === "pending" ? (
+          <Button type="button" variant="outline" onClick={() => setConfirmingReject(true)}>
+            Rifiuta
+          </Button>
+        ) : (
+          <ActionButton action={rejectProposalAction} fields={{ connectionId }} variant="outline">
+            Rifiuta
+          </ActionButton>
+        )}
       </div>
+      {/* Senza un orario già concordato, rifiutare chiude la connessione: va detto prima. */}
+      {confirmingReject && (
+        <Confirm
+          text="Se rifiuti, la connessione si chiude. Puoi proporre un altro orario, invece."
+          confirmLabel="Sì, rifiuta"
+          action={rejectProposalAction}
+          connectionId={connectionId}
+          onCancel={() => setConfirmingReject(false)}
+        />
+      )}
     </div>
   );
 }
 
-function ChangeTime({ connectionId, partnerName, revealTime }: Pick<Props, "connectionId" | "partnerName" | "revealTime">) {
-  const [error, formAction, pending] = useActionForm(proposeTimeAction);
+type ChangeTimeProps = Pick<Props, "connectionId" | "partnerName" | "status" | "revealTime" | "proposedRevealTime"> & {
+  onDone: () => void;
+};
+
+function ChangeTime({ connectionId, partnerName, status, revealTime, proposedRevealTime, onDone }: ChangeTimeProps) {
+  const [error, formAction, pending] = useActionForm(async (formData) => {
+    const result = await proposeTimeAction(formData);
+    if ("redirectTo" in result) onDone();
+    return result;
+  });
   return (
     <form action={formAction} className="space-y-2">
       <input type="hidden" name="connectionId" value={connectionId} />
-      <p className="text-sm text-muted-foreground">Il nuovo orario varrà da domani, se {partnerName} accetta</p>
+      <p className="text-sm text-muted-foreground">
+        {status === "active"
+          ? `Il nuovo orario varrà da domani, se ${partnerName} accetta`
+          : `Le lanterne potranno partire quando ${partnerName} accetta`}
+        {proposedRevealTime && ". Prende il posto della proposta in attesa."}
+      </p>
       <label className="block space-y-1">
         <span className="text-sm font-medium">Orario</span>
-        <RevealTimeSelect name="time" defaultValue={revealTime ?? undefined} />
+        <RevealTimeSelect name="time" defaultValue={proposedRevealTime ?? revealTime ?? undefined} />
       </label>
       <Button type="submit" disabled={pending}>
         Proponi
@@ -105,11 +135,9 @@ export function ConnectionMenu(props: Props) {
       <Proposal {...props} />
 
       <div className="flex flex-wrap gap-2">
-        {status === "active" && !proposedRevealTime && (
-          <Button type="button" variant="outline" onClick={() => toggle("time")}>
-            Cambia orario
-          </Button>
-        )}
+        <Button type="button" variant="outline" onClick={() => toggle("time")}>
+          Cambia orario
+        </Button>
         <Button type="button" variant="outline" onClick={() => toggle("end")}>
           Chiudi la connessione
         </Button>
@@ -118,8 +146,15 @@ export function ConnectionMenu(props: Props) {
         </Button>
       </div>
 
-      {panel === "time" && !proposedRevealTime && (
-        <ChangeTime connectionId={connectionId} partnerName={partnerName} revealTime={revealTime} />
+      {panel === "time" && (
+        <ChangeTime
+          connectionId={connectionId}
+          partnerName={partnerName}
+          status={status}
+          revealTime={revealTime}
+          proposedRevealTime={proposedRevealTime}
+          onDone={close}
+        />
       )}
       {panel === "end" && (
         <Confirm

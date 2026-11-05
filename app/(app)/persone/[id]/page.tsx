@@ -70,7 +70,12 @@ export default async function ChannelPage({ params }: PageProps<"/persone/[id]">
               <p className="text-sm">
                 {formatDepartureLabel(nextDeparture, viewerTz, partner.timezone, partner.name, now)}
               </p>
-              <Countdown target={nextDeparture.toISOString()} serverNow={now.toISOString()} />
+              {/* La key lo rimonta a ogni nuovo orario del server, anche dopo un viaggio nel tempo. */}
+              <Countdown
+                key={now.toISOString()}
+                target={nextDeparture.toISOString()}
+                serverNow={now.toISOString()}
+              />
             </div>
           )}
           <ul className="space-y-3">

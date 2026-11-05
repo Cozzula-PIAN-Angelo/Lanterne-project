@@ -69,6 +69,19 @@ test("non tocca gli utenti che non sono della demo", async () => {
   expect(row?.id).toBe(other.id);
 });
 
+test("di sera, chi ha lanterne arrivate non legge che l'altro non ne ha lasciate", async () => {
+  const evening = new Date("2026-11-05T22:00:00Z"); // le 23:00 a Roma, dopo l'apertura delle 21:30
+  await seedDemoData(db, evening);
+  const userId = await idOf("giulia@lanterne.local");
+  const [connection] = (await listConnections(db, { userId, now: evening })).filter(
+    (c) => c.partner.name === "Marco",
+  );
+  const channel = await getChannel(db, { connectionId: connection.id, userId, now: evening });
+  if (!channel.ok) throw new Error(channel.error);
+  expect(channel.value.arrived).toHaveLength(3);
+  expect(channel.value.partnerLeftNothing).toBe(false);
+});
+
 test("i dati demo si usano con la password concordata", async () => {
   await seedDemoData(db, now);
   const session = await auth.api.signInEmail({

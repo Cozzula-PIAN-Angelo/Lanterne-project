@@ -56,4 +56,11 @@ test("il ciclo completo, col viaggio nel tempo", async ({ browser }) => {
   // "Torna a ora" riporta tutto al presente: la lanterna è di nuovo sigillata.
   await anna.getByRole("button", { name: "Torna a ora" }).click();
   await expect(mine.getByRole("button", { name: "Elimina" })).toHaveCount(2);
+
+  // Dopo la chiusura, chi ha conservato una lanterna ritrova il canale dalla home.
+  await luca.getByRole("button", { name: "Chiudi la connessione" }).click();
+  await luca.getByRole("button", { name: "Sì, chiudi" }).click();
+  await expect(luca).toHaveURL(/\/$/);
+  await luca.getByRole("region", { name: "Connessioni chiuse" }).getByRole("link", { name: "Anna" }).click();
+  await expect(luca.getByRole("region", { name: "Ricordi" }).getByText(TESTO)).toBeVisible();
 });

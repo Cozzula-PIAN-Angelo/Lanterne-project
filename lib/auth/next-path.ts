@@ -9,7 +9,9 @@ export function safeNextPath(raw: unknown): string | null {
   try {
     // Il parser è lo stesso del browser: "/\t/evil" diventa "//evil" e cambia origine.
     const url = new URL(raw, PROBE_ORIGIN);
-    return url.origin === PROBE_ORIGIN ? `${url.pathname}${url.search}` : null;
+    if (url.origin !== PROBE_ORIGIN) return null;
+    // Dopo la normalizzazione, "/..//evil" diventa "//evil": un percorso così porterebbe fuori dal sito.
+    return url.pathname.startsWith("//") ? null : `${url.pathname}${url.search}`;
   } catch {
     return null;
   }

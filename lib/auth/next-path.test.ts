@@ -15,6 +15,10 @@ describe("safeNextPath", () => {
     ["schema", "javascript:alert(1)"],
     ["percorso relativo", "invito/abc"],
     ["vuoto", ""],
+    ["punti che normalizzati danno //", "/..//evil.example"],
+    ["punto che normalizzato dà //", "/.//evil.example"],
+    ["punto codificato", "/%2e//evil.example"],
+    ["risalita da una cartella", "/a/..//evil.example"],
   ])("rifiuta: %s", (_name, value) => {
     expect(safeNextPath(value)).toBeNull();
   });

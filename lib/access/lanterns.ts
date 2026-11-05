@@ -168,14 +168,9 @@ export async function getChannel(
       .where(eq(connections.id, connectionId));
     // Se la connessione è nata dopo l'apertura di stasera, il partner non ha avuto occasione.
     const hadChance = !activatedAt || activatedAt.getTime() <= last.getTime();
-    if (hadChance && now.getTime() < computeExpiresAt(last, myTz).getTime()) {
-      const received = await db
-        .select({ id: lanterns.id })
-        .from(lanterns)
-        .where(and(ready, eq(lanterns.recipientId, userId), eq(lanterns.revealAt, last)))
-        .limit(1);
-      partnerLeftNothing = received.length === 0;
-    }
+    // Basta una lanterna leggibile, anche partita a un altro orario (cambio di fuso o d'orario).
+    partnerLeftNothing =
+      hadChance && now.getTime() < computeExpiresAt(last, myTz).getTime() && arrived.length === 0;
   }
 
   return ok({

@@ -236,7 +236,18 @@ riproduce il problema:
 - **Flusso completo in e2e:** invito, invio, salto nel tempo fino all'arrivo, reazione e
   salvataggio, fino a ciò che vede il mittente.
 
+### Revisione del blocco C (Task 12–15)
+Una revisione indipendente non ha trovato problemi critici. Ha fatto correggere, ciascuno con un test
+che riproduce il problema:
+- `safeNextPath` accettava percorsi che, normalizzati, diventavano `//sito-esterno`;
+- le connessioni chiuse non erano più raggiungibili, nonostante la promessa "i ricordi restano":
+  ora la home le elenca, se contengono ricordi;
+- il messaggio "non ha lasciato lanterne" poteva comparire accanto a lanterne arrivate;
+- una proposta in attesa non si poteva sostituire e, su una connessione in attesa, "Rifiuta" la
+  chiudeva senza avvisare;
+- il conto alla rovescia non seguiva il viaggio nel tempo.
+
 ---
 
-**Stato:** 80 test di integrazione, 74 unit e 10 e2e verdi. Prossimo passo: revisione del blocco C
-(Task 12–15) e PR `piano-1` → `main`.
+**Stato:** 83 test di integrazione, 78 unit e 13 e2e verdi. Prossimo passo: PR `piano-1` → `main`,
+poi il Piano 2.

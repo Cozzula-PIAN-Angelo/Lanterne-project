@@ -4,6 +4,7 @@ import {
   completeOnboarding,
   connectPair,
   createInviteLink,
+  openInviteAsNewUser,
   loginWithMagicLink,
   closeContexts,
   resetAuthRateLimit,
@@ -148,4 +149,74 @@ test("le impostazioni salvano le scelte e si può uscire", async ({ page }) => {
   await expect(page).toHaveURL(/\/accedi/);
   await page.goto("/impostazioni");
   await expect(page).toHaveURL(/\/accedi/);
+});
+
+test("una proposta in attesa si può sostituire", async ({ browser }) => {
+  const { anna, luca } = await connectPair(browser, "sostituisci", offsetToRomeMorning());
+  await luca.getByRole("link", { name: "Anna" }).click();
+  await expect(luca).toHaveURL(/\/persone\//);
+
+  const propose = async (time: string) => {
+    await luca.getByRole("button", { name: "Cambia orario" }).click();
+    await luca.getByLabel("Orario").filter({ visible: true }).selectOption(time);
+    await luca.getByRole("button", { name: "Proponi", exact: true }).click();
+    await expect(luca.getByText(`Hai proposto le ${time}`)).toBeVisible();
+  };
+  await propose("22:00");
+  await propose("22:30");
+
+  await anna.goto(luca.url());
+  await expect(anna.getByText("Luca propone le 22:30")).toBeVisible();
+});
+
+test("rifiutare una controproposta chiude la connessione, quindi chiede conferma", async ({ browser }) => {
+  const anna = await (await browser.newContext()).newPage();
+  await loginWithMagicLink(anna, "anna.rifiuto@test.local");
+  await completeOnboarding(anna, "Anna", "Europe/Rome");
+  const link = await createInviteLink(anna, "21:30");
+
+  const luca = await (await browser.newContext()).newPage();
+  await openInviteAsNewUser(luca, link, {
+    email: "luca.rifiuto@test.local",
+    name: "Luca",
+    timezone: "Europe/Rome",
+  });
+  await luca.getByRole("button", { name: "Proponi un altro orario" }).click();
+  await luca.getByLabel("Orario").filter({ visible: true }).selectOption("23:00");
+  await luca.getByRole("button", { name: "Proponi questo orario" }).click();
+  await expect(luca).toHaveURL(/\/$/);
+
+  // Anche chi ha proposto può ancora cambiare idea, prima che l'altro risponda.
+  await luca.getByRole("link", { name: "Anna" }).click();
+  await expect(luca).toHaveURL(/\/persone\//);
+  await luca.getByRole("button", { name: "Cambia orario" }).click();
+  await luca.getByLabel("Orario").filter({ visible: true }).selectOption("23:30");
+  await luca.getByRole("button", { name: "Proponi", exact: true }).click();
+  await expect(luca.getByText("Hai proposto le 23:30")).toBeVisible();
+
+  await anna.goto(luca.url());
+  await expect(anna.getByText("Luca propone le 23:30")).toBeVisible();
+  await anna.getByRole("button", { name: "Rifiuta", exact: true }).click();
+  await expect(anna.getByText("Se rifiuti, la connessione si chiude.")).toBeVisible();
+  await expect(anna.getByText("Questa connessione è chiusa.")).toHaveCount(0);
+  await anna.getByRole("button", { name: "Annulla" }).click();
+  await expect(anna.getByRole("button", { name: "Sì, rifiuta" })).toHaveCount(0);
+
+  await anna.getByRole("button", { name: "Rifiuta", exact: true }).click();
+  await anna.getByRole("button", { name: "Sì, rifiuta" }).click();
+  await expect(anna.getByText("Questa connessione è chiusa.")).toBeVisible();
+});
+
+test("il conto alla rovescia segue il viaggio nel tempo", async ({ browser }) => {
+  const { anna } = await connectPair(browser, "conto", offsetToRomeMorning());
+  await anna.goto("/");
+  await anna.getByRole("link", { name: "Luca" }).click();
+  await anna.getByLabel("La tua lanterna").fill("parte stasera");
+  await anna.getByRole("button", { name: "Lascia la lanterna" }).click();
+
+  const countdown = anna.getByRole("region", { name: "Le tue lanterne" }).getByText(/^tra /);
+  await expect(countdown).toBeVisible();
+  const before = await countdown.textContent();
+  await anna.getByRole("button", { name: "+1 ora" }).click();
+  await expect(countdown).not.toHaveText(before ?? "");
 });

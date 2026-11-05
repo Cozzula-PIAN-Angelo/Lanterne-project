@@ -1,4 +1,4 @@
-import { and, asc, count, eq, inArray, isNull, or } from "drizzle-orm";
+import { and, asc, count, eq, inArray, isNotNull, isNull, or } from "drizzle-orm";
 import type { Db, DbOrTx, Tx } from "@/lib/db/client";
 import { connections, lanterns, user } from "@/lib/db/schema";
 import { computeRevealAt } from "@/lib/time/lantern-times";
@@ -98,6 +98,23 @@ export async function listConnections(
     .select()
     .from(connections)
     .where(and(isMember(input.userId), inArray(connections.status, ["active", "pending"])))
+    .orderBy(connections.createdAt);
+  return summarize(db, rows, input.userId, input.now);
+}
+
+/** Le connessioni chiuse in cui hai conservato qualcosa: "i ricordi restano" e vanno ritrovati. */
+export async function listClosedWithMemories(
+  db: Db,
+  input: { userId: string; now: Date },
+): Promise<ConnectionSummary[]> {
+  const withMemories = db
+    .select({ id: lanterns.connectionId })
+    .from(lanterns)
+    .where(and(eq(lanterns.recipientId, input.userId), isNotNull(lanterns.savedAt)));
+  const rows = await db
+    .select()
+    .from(connections)
+    .where(and(isMember(input.userId), eq(connections.status, "ended"), inArray(connections.id, withMemories)))
     .orderBy(connections.createdAt);
   return summarize(db, rows, input.userId, input.now);
 }
