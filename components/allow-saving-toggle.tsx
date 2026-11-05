@@ -1,19 +1,37 @@
 "use client";
 
+import { useState, useTransition } from "react";
 import { setAllowSavingAction } from "@/app/(app)/actions/settings";
-import { useActionForm } from "@/components/use-action-form";
 
 export function AllowSavingToggle({ defaultChecked }: { defaultChecked: boolean }) {
-  const [error, formAction, pending] = useActionForm(setAllowSavingAction);
+  const [checked, setChecked] = useState(defaultChecked);
+  const [error, setError] = useState<string | null>(null);
+  const [pending, startTransition] = useTransition();
+
+  // Niente <form action>: dopo l'azione React chiama form.reset(), che riporta una checkbox
+  // all'attributo iniziale anche se è controllata, e l'interruttore tornerebbe indietro.
+  function toggle(next: boolean) {
+    setChecked(next);
+    setError(null);
+    startTransition(async () => {
+      const formData = new FormData();
+      if (next) formData.set("allowSaving", "on");
+      const result = await setAllowSavingAction(formData);
+      if ("error" in result) {
+        setChecked(!next);
+        setError(result.error);
+      }
+    });
+  }
+
   return (
-    <form action={formAction} className="space-y-1">
+    <div className="space-y-1">
       <label className="flex items-center gap-3">
         <input
           type="checkbox"
-          name="allowSaving"
-          defaultChecked={defaultChecked}
+          checked={checked}
           disabled={pending}
-          onChange={(e) => e.currentTarget.form?.requestSubmit()}
+          onChange={(e) => toggle(e.target.checked)}
           className="size-5"
         />
         <span>Permetti di conservare le mie lanterne</span>
@@ -24,6 +42,6 @@ export function AllowSavingToggle({ defaultChecked }: { defaultChecked: boolean 
           {error}
         </p>
       )}
-    </form>
+    </div>
   );
 }

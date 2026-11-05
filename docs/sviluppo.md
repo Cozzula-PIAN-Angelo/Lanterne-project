@@ -216,6 +216,13 @@ riproduce il problema:
   resta in `localStorage`, e il banner funziona anche se `localStorage` non è disponibile.
 - **Uscita con ricarica completa:** le pagine già visitate restano in memoria, nascoste da
   `<Activity>`, e su un dispositivo condiviso non devono sopravvivere al logout.
+- **Un bug dell'interruttore:** dopo una `<form action>`, React chiama `form.reset()`, che riporta
+  una checkbox all'attributo iniziale anche se è controllata. L'interruttore tornava indietro pur
+  avendo salvato; ora l'azione parte da una transizione, senza form.
+- **Test instabili, due cause vere:** `completeOnboarding` non aspettava il salvataggio, e una
+  navigazione immediata lo interrompeva; `getByLabel("Nome")` cerca una sottostringa e trovava anche
+  il select del fuso, perché il testo del suo label include "America/Menominee". Quattro esecuzioni
+  consecutive della suite sono verdi.
 
 ---
 

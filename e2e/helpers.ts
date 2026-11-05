@@ -52,10 +52,12 @@ export async function completeOnboarding(page: Page, name: string, timezone: str
   await expect(page).toHaveURL(/\/benvenuto/);
   // Le opzioni del fuso esistono solo nel browser: un valore vuol dire che la pagina è idratata.
   await expect(page.getByLabel("Fuso orario")).not.toHaveValue("");
-  await page.getByLabel("Nome").fill(name);
+  await page.getByLabel("Nome", { exact: true }).fill(name);
   await page.getByLabel("ambra").check();
   await page.getByLabel("Fuso orario").selectOption(timezone);
   await page.getByRole("button", { name: "Continua" }).click();
+  // Senza questa attesa, una navigazione subito dopo può interrompere il salvataggio del profilo.
+  await expect(page).not.toHaveURL(/\/benvenuto/);
 }
 
 /** Crea un invito dall'interfaccia e restituisce il link da condividere. */

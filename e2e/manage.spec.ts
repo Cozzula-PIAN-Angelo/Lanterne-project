@@ -76,6 +76,10 @@ test("chiudere una connessione chiede conferma e libera il posto", async ({ brow
   await expect(luca).toHaveURL(/\/persone\//);
   const channel = luca.url();
 
+  // Anna sta scrivendo mentre Luca chiude: il suo testo non deve andare perso.
+  await anna.goto(channel);
+  await anna.getByLabel("La tua lanterna").fill("stavo scrivendo questo");
+
   await luca.getByRole("button", { name: "Chiudi la connessione" }).click();
   await expect(luca.getByText("Le lanterne non ancora arrivate verranno eliminate. I ricordi restano.")).toBeVisible();
   await luca.getByRole("button", { name: "Annulla" }).click();
@@ -85,6 +89,10 @@ test("chiudere una connessione chiede conferma e libera il posto", async ({ brow
   await luca.getByRole("button", { name: "Sì, chiudi" }).click();
   await expect(luca).toHaveURL(/\/$/);
   await expect(luca.getByRole("link", { name: "Invita qualcuno" })).toHaveCount(5);
+
+  await anna.getByRole("button", { name: "Lascia la lanterna" }).click();
+  await expect(anna.getByRole("alert").filter({ hasText: "orario" })).toBeVisible();
+  await expect(anna.getByLabel("La tua lanterna")).toHaveValue("stavo scrivendo questo");
 
   await anna.goto(channel);
   await expect(anna.getByText("Questa connessione è chiusa.")).toBeVisible();
@@ -124,15 +132,16 @@ test("le impostazioni salvano le scelte e si può uscire", async ({ page }) => {
   await expect(saving).toBeChecked();
   await expect(page.getByText("Vale per le lanterne che invierai da ora in poi")).toBeVisible();
   await saving.uncheck();
+  await expect(saving).toBeEnabled(); // salvato: il reload non interrompe l'azione
   await expect(saving).not.toBeChecked();
   await page.reload();
   await expect(saving).not.toBeChecked();
 
-  await page.getByLabel("Nome").fill("Nina Rossi");
+  await page.getByLabel("Nome", { exact: true }).fill("Nina Rossi");
   await page.getByRole("button", { name: "Salva" }).click();
   await expect(page.getByRole("status")).toHaveText("Salvato.");
   await page.reload();
-  await expect(page.getByLabel("Nome")).toHaveValue("Nina Rossi");
+  await expect(page.getByLabel("Nome", { exact: true })).toHaveValue("Nina Rossi");
   await expect(page.getByLabel("Fuso orario")).toHaveValue("Europe/Rome");
 
   await page.getByRole("button", { name: "Esci" }).click();
