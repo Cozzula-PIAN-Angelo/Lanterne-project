@@ -412,6 +412,6 @@ La revisione indipendente non ha trovato problemi critici e conferma che i perco
   cancellarle. Anche l'eliminazione dell'account svuota la coda. Gli elementi sono legati all'utente che li ha creati.
 - **Senza IndexedDB:** il file resta in memoria e il pannello chiede di non chiudere la pagina.
 - **Problema aperto:** nella suite e2e completa, una navigazione verso il canale a volte resta ferma su "Un attimo…"
-  e il test scade. È successo in 4 esecuzioni su 6, sempre in un solo test di `e2e/offline.spec.ts`, ogni volta diverso.
-  Non si è mai riprodotto eseguendo quel file da solo o ripetendo la sola navigazione. La causa non è nota, e non è
-  ancora escluso che riguardi anche chi usa l'app.
+  e il test scade. Succede in modo intermittente, sempre in un solo test di `e2e/offline.spec.ts`, ogni volta diverso,
+  sia nella suite completa sia eseguendo quel file da solo. La causa non è nota, e non è ancora escluso che riguardi
+  anche chi usa l'app.
