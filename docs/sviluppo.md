@@ -318,3 +318,16 @@ che nasconde la pagina lasciandola viva e che i test non avevano mai messo alla 
   unico togliere metà del controllo non faceva fallire nulla. Si aggiunge il blocco durante un upload.
 - **Piano aggiornato:** la coda di cancellazione del Task 6 aspetterà un'ora, perché un PUT già iniziato può
   finire dopo la cancellazione della riga. Il Task 11 ripeterà solo la conferma se il file è già caricato.
+
+### Task 6 — Pulizia e cancellazione dei file
+- **Tre funzioni in `lib/access/cleanup.ts`:** `cleanupExpired` toglie le lanterne scadute e non conservate,
+  `cleanupAbandoned` quelle rimaste in `uploading` da più di un'ora, `drainStorageDeletions` toglie i file.
+  Per ora le chiama solo il test: le pianificherà il worker del Task 7.
+- **Le prime due non toccano lo storage:** cancellano le righe e ci pensa il trigger ad accodare i file.
+  Così esiste un solo percorso di cancellazione, comune a chiusure, blocchi ed eliminazione dell'account.
+- **Un'ora di attesa in coda:** un upload già iniziato può finire dopo la cancellazione della riga. Togliendo
+  il file subito, l'upload lo ricreerebbe senza che nessuno lo sappia più. Nel frattempo il file è
+  irraggiungibile, perché per firmare un link di lettura serve la riga.
+- **Se lo storage non risponde:** la riga della coda sparisce solo dopo la rimozione riuscita, e un fallimento
+  non ferma le altre chiavi.
+- **La scadenza non dipende dalla pulizia:** una lanterna scaduta è già invisibile anche se il worker è fermo.
