@@ -1,7 +1,9 @@
 import type { PgBoss } from "pg-boss";
 import { cleanupAbandoned, cleanupExpired, drainStorageDeletions } from "@/lib/access/cleanup";
+import { notifyArrivals } from "@/lib/access/push";
 import type { Clock } from "@/lib/clock/clock";
 import type { Db } from "@/lib/db/client";
+import { webPushSender } from "@/lib/push/sender";
 import type { MediaStorage } from "@/lib/storage/s3";
 
 export type WorkerDeps = { db: Db; storage: MediaStorage; clock: Clock };
@@ -27,6 +29,15 @@ export const JOBS: readonly Job[] = [
       // Il job riesce lo stesso e riprova da solo: senza questa riga, uno storage guasto
       // lascerebbe i file al loro posto senza che nessuno se ne accorga. Mai le chiavi nel log.
       if (failed > 0) console.error(`drain-storage: ${failed} file non rimossi`);
+    },
+  },
+  {
+    name: "notify-arrivals",
+    cron: "* * * * *",
+    run: async ({ db, clock }) => {
+      const { failed } = await notifyArrivals(db, { now: clock.now(), send: webPushSender });
+      // Solo il numero: niente endpoint né nomi nel log.
+      if (failed > 0) console.error(`notify-arrivals: ${failed} invii non riusciti`);
     },
   },
 ];

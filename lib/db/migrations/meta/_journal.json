@@ -36,6 +36,13 @@
       "when": 1793900842640,
       "tag": "0004_storage_deletion_trigger",
       "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1793954507509,
+      "tag": "0005_sleepy_sasquatch",
+      "breakpoints": true
     }
   ]
 }

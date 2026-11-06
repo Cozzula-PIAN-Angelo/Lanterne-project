@@ -113,6 +113,7 @@ describe("pg-boss", () => {
       ["cleanup-expired", "*/15 * * * *"],
       ["cleanup-abandoned", "*/15 * * * *"],
       ["drain-storage", "* * * * *"],
+      ["notify-arrivals", "* * * * *"],
     ]);
   });
 

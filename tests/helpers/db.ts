@@ -25,6 +25,7 @@ const TABLES = [
   "blocks",
   "rate_limits",
   "storage_deletions",
+  "push_subscriptions",
   "session",
   "account",
   "verification",

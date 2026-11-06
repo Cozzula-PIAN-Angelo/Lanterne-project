@@ -3,11 +3,15 @@
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { authClient } from "@/lib/auth/auth-client";
+import { dropPushSubscription } from "@/lib/client/push";
 
 export function SignOutButton() {
   const [failed, setFailed] = useState(false);
 
   async function signOut() {
+    // Prima di chiudere la sessione, che serve per togliere la riga. Su un telefono condiviso
+    // le notifiche, con i nomi delle persone, non devono arrivare a chi entra dopo.
+    await dropPushSubscription();
     const { error } = await authClient.signOut();
     if (error) {
       setFailed(true);

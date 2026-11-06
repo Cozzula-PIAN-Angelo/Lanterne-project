@@ -376,3 +376,19 @@ La revisione indipendente non ha trovato problemi critici e conferma che i perco
 - **Pagina offline autosufficiente:** senza rete non arrivano CSS e font, quindi gli stili sono in linea. Il link
   "Riprova" è un `<a>` normale, perché nemmeno il JavaScript è disponibile.
 - **Test isolati:** il service worker è attivo solo in `e2e/pwa.spec.ts`; gli altri test lo bloccano.
+
+### Task 10 — Notifiche push
+- **Prima si marca, poi si invia:** `notifyArrivals` segna le lanterne arrivate con un solo `UPDATE ... RETURNING`.
+  Due esecuzioni simultanee non possono prendere la stessa riga, quindi niente doppioni. Il prezzo è che, se il worker
+  cade tra i due passi, quell'avviso si perde; la lanterna resta comunque visibile, perché la visibilità non dipende dal worker.
+- **Una notifica per gruppo:** una per destinatario e connessione, su ogni suo dispositivo. Contiene solo il nome del
+  mittente, mai il testo. Una connessione chiusa non produce avvisi, anche se una lanterna conservata è ancora lì.
+- **Endpoint scelto dal client:** il worker fa una richiesta a quell'indirizzo, quindi si accetta solo HTTPS verso un
+  nome di dominio. `localhost` e gli IP sono rifiutati, comprese scritture come `https://2130706433`.
+- **Esiti:** 404 e 410 tolgono la sottoscrizione; ogni altro errore la tiene e finisce nel log come numero, senza dati.
+- **Telefono condiviso:** uscire o eliminare l'account spegne anche l'iscrizione del browser, altrimenti chi entra dopo
+  riceverebbe avvisi con i nomi delle persone di un altro.
+- **Permesso solo al tocco:** l'interruttore gestisce anche browser non supportato, permesso negato e iPhone senza app
+  installata, con la guida "Aggiungi alla schermata Home".
+- **Limite dei test:** il Chromium headless non mostra notifiche e non raggiunge un servizio push. Gli e2e simulano quella
+  parte del browser; la consegna reale si verifica sul telefono nel Task 12.

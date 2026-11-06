@@ -64,6 +64,61 @@ test("senza rete, una navigazione mostra la pagina offline", async ({ page, cont
   ).toBeVisible();
 });
 
+test("un push ricevuto diventa una notifica", async ({ page, context }) => {
+  await page.goto("/accedi");
+  await waitForServiceWorker(page);
+  const [worker] = context.serviceWorkers();
+  // Il Chromium headless non può mostrare notifiche: si registra la chiamata, il push invece è vero.
+  await worker.evaluate(() => {
+    const scope = self as unknown as {
+      shown: unknown[];
+      registration: { showNotification: (title: string, options?: NotificationOptions) => Promise<void> };
+    };
+    scope.shown = [];
+    scope.registration.showNotification = async (title, options) => {
+      scope.shown.push({ title, body: options?.body, data: options?.data });
+    };
+  });
+
+  const cdp = await context.newCDPSession(page);
+  const registrationId = new Promise<string>((resolve) => {
+    cdp.on("ServiceWorker.workerRegistrationUpdated", ({ registrations }) => {
+      const live = registrations.find((r) => !r.isDeleted);
+      if (live) resolve(live.registrationId);
+    });
+  });
+  await cdp.send("ServiceWorker.enable");
+  await cdp.send("ServiceWorker.deliverPushMessage", {
+    origin: new URL(page.url()).origin,
+    registrationId: await registrationId,
+    data: JSON.stringify({ title: "Lanterne", body: "Le lanterne di Marco sono arrivate", url: "/persone/1" }),
+  });
+
+  await expect
+    .poll(() => worker.evaluate(() => (self as unknown as { shown: unknown[] }).shown))
+    .toEqual([{ title: "Lanterne", body: "Le lanterne di Marco sono arrivate", data: { url: "/persone/1" } }]);
+});
+
+test("il tocco su una notifica apre solo percorsi interni", async ({ page, context }) => {
+  await page.goto("/accedi");
+  await waitForServiceWorker(page);
+  const [worker] = context.serviceWorkers();
+
+  const paths = await worker.evaluate(() => {
+    const { internalPath } = self as unknown as { internalPath: (url: unknown) => string };
+    return [
+      "/persone/1?a=2",
+      "https://altro.example/persone",
+      "//altro.example/x",
+      "/\\altro.example/x",
+      "javascript:alert(1)",
+      undefined,
+    ].map(internalPath);
+  });
+
+  expect(paths).toEqual(["/persone/1?a=2", "/", "/", "/", "/", "/"]);
+});
+
 test("le pagine autenticate non finiscono nella cache", async ({ page }) => {
   await loginWithMagicLink(page, "pwa-cache@lanterne.test");
   await completeOnboarding(page, "Pia", "Europe/Rome");

@@ -121,6 +121,19 @@ export const storageDeletions = pgTable("storage_deletions", {
   createdAt: instant("created_at").notNull().defaultNow(),
 });
 
+export const pushSubscriptions = pgTable(
+  "push_subscriptions",
+  {
+    id: id(),
+    userId: userRef("user_id"),
+    endpoint: text("endpoint").notNull().unique(),
+    p256dh: text("p256dh").notNull(),
+    auth: text("auth").notNull(),
+    createdAt: instant("created_at").notNull().defaultNow(),
+  },
+  (t) => [index("push_subscriptions_user").on(t.userId)],
+);
+
 export const rateLimits = pgTable("rate_limits", {
   key: text("key").primaryKey(),
   windowStart: instant("window_start").notNull(),
