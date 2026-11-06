@@ -331,3 +331,16 @@ che nasconde la pagina lasciandola viva e che i test non avevano mai messo alla 
 - **Se lo storage non risponde:** la riga della coda sparisce solo dopo la rimozione riuscita, e un fallimento
   non ferma le altre chiavi.
 - **La scadenza non dipende dalla pulizia:** una lanterna scaduta è già invisibile anche se il worker è fermo.
+
+### Task 7 — Worker
+- **Un processo a parte:** `worker/index.ts` è un secondo processo Node accanto all'app. `pnpm dev` li avvia
+  insieme con `concurrently`, mentre gli e2e usano `pnpm dev:web`: senza worker, le pulizie non cambiano i dati
+  a metà di un test.
+- **Job in `worker/jobs.ts`:** ogni 15 minuti `cleanup-expired` e `cleanup-abandoned`, ogni minuto
+  `drain-storage`. Con pg-boss 12 ogni coda va creata prima di `schedule` e `work`.
+- **pg-boss sta su Postgres:** niente Redis né altri servizi. Lo schedule vive in tabelle proprie, in uno
+  schema dedicato `pgboss`.
+- **I log non contengono dati:** se un job fallisce, si scrive solo il suo nome. pg-boss salva l'errore nelle
+  sue tabelle, quindi anche a lui arriva un errore nuovo, senza la causa originale.
+- **Prova reale:** `pnpm worker` sul database di test ha cancellato una lanterna scaduta. Scaduto il margine,
+  il cron ha tolto da solo il file dallo storage e la riga dalla coda.

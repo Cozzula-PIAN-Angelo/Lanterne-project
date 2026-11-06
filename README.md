@@ -26,6 +26,10 @@ pnpm dev
 Usa `pnpm run setup` per esteso: `pnpm setup` è un comando interno di pnpm, che non lancia lo script
 del progetto.
 
+`pnpm dev` avvia insieme l'app e il worker che pulisce lanterne scadute e file cancellati. Per avviarli
+separatamente ci sono `pnpm dev:web` e `pnpm dev:worker`. Senza il worker l'app funziona lo stesso: le
+lanterne scadute restano comunque invisibili, ma nessuno le cancella dal database e dallo storage.
+
 ## Utenti demo
 
 Da `http://localhost:3000/accedi`, con i pulsanti "Entra come…": **Giulia**, **Marco** e **Sara**.
