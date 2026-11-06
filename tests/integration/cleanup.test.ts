@@ -56,7 +56,7 @@ describe("cleanupExpired", () => {
   test("cleanupExpired elimina le scadute non conservate, di ogni tipo", async () => {
     const ctx = await setup();
     const text = await ctx.lantern();
-    const thought = await ctx.lantern({ type: "thought", text: null, thoughtId: "ti-penso" });
+    const thought = await ctx.lantern({ type: "thought", text: "ti-penso" });
     const key = `media/${randomUUID()}`;
     const audio = await ctx.lantern({
       type: "audio",
