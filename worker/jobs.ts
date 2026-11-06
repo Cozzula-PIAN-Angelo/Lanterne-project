@@ -22,7 +22,12 @@ export const JOBS: readonly Job[] = [
   {
     name: "drain-storage",
     cron: "* * * * *",
-    run: ({ db, storage, clock }) => drainStorageDeletions(db, storage, { now: clock.now() }),
+    run: async ({ db, storage, clock }) => {
+      const { failed } = await drainStorageDeletions(db, storage, { now: clock.now() });
+      // Il job riesce lo stesso e riprova da solo: senza questa riga, uno storage guasto
+      // lascerebbe i file al loro posto senza che nessuno se ne accorga. Mai le chiavi nel log.
+      if (failed > 0) console.error(`drain-storage: ${failed} file non rimossi`);
+    },
   },
 ];
 

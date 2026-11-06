@@ -13,7 +13,7 @@ import {
 import { requireOnboardedUser } from "@/lib/auth/session";
 import { getRequestClock } from "@/lib/clock/request";
 import { db } from "@/lib/db/client";
-import { errorMessage, type ActionResult } from "@/lib/messages";
+import { errorMessage, sendErrorMessage, type ActionResult } from "@/lib/messages";
 
 const textSchema = z.object({ connectionId: z.uuid(), text: z.string() });
 const thoughtSchema = z.object({ connectionId: z.uuid(), thoughtId: z.string() });
@@ -39,6 +39,7 @@ export async function sendTextAction(formData: FormData): Promise<ActionResult> 
   const input = textSchema.safeParse(Object.fromEntries(formData));
   if (!input.success) return INVALID;
   const result = await createTextLantern(db, { ...input.data, senderId: userId, now });
+  if (!result.ok) return { error: sendErrorMessage(result.error) };
   return finish(result, input.data.connectionId);
 }
 
@@ -47,6 +48,7 @@ export async function sendThoughtAction(formData: FormData): Promise<ActionResul
   const input = thoughtSchema.safeParse(Object.fromEntries(formData));
   if (!input.success) return INVALID;
   const result = await createThoughtLantern(db, { ...input.data, senderId: userId, now });
+  if (!result.ok) return { error: sendErrorMessage(result.error) };
   return finish(result, input.data.connectionId);
 }
 

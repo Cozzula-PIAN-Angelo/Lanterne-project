@@ -354,3 +354,15 @@ che nasconde la pagina lasciandola viva e che i test non avevano mai messo alla 
 - **Uscita con ricarica vera:** come per "Esci", perché `<Activity>` terrebbe in memoria le pagine già visitate.
 - **Testo sulla chiusura:** dice ora che spariscono tutte le lanterne non conservate, anche quelle già arrivate.
   È quello che il codice faceva già: il vecchio testo, e la spec, promettevano meno di quanto succede.
+
+### Revisione del blocco B
+La revisione indipendente non ha trovato problemi critici e conferma che i percorsi di cancellazione tengono.
+- **Storage guasto:** il job `drain-storage` riusciva anche con tutti i file rimasti al loro posto, senza scrivere
+  nulla. Ora il log dice quanti file non sono stati rimossi, mai quali.
+- **Test del worker:** passavano anche con il worker rotto, perché le pianificazioni della corsa precedente
+  restavano nel database e nessuno eseguiva davvero i job. Ora lo schema si azzera a ogni avvio, ogni job gira
+  su dati veri e il test legge quel che pg-boss conserva. Ogni controllo è provato rompendo il codice apposta.
+- **Connessione sparita:** chi aveva la pagina aperta quando l'altra persona elimina l'account leggeva "riproviamo
+  tra poco", all'infinito. Ora legge "Questa connessione non c'è più", e il testo scritto resta nel campo.
+- **Testo nei log:** gli errori di Drizzle riportano i parametri della query, quindi un insert fallito poteva
+  scrivere il testo di una lanterna nei log del server, contro quanto promette la spec. Ora l'errore esce senza.

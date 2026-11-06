@@ -69,7 +69,7 @@ async function createLantern(
   input: { connectionId: string; senderId: string; type: "text" | "thought"; text: string; now: Date },
 ): Promise<AccessResult<LanternView>> {
   const { connectionId, senderId, type, text, now } = input;
-  return db.transaction(async (tx) => {
+  const inserted = db.transaction(async (tx) => {
     const opened = await openConnectionForSender(tx, connectionId, senderId);
     if (!opened.ok) return opened;
     const { connection: c, sender, recipient } = opened.value;
@@ -100,6 +100,11 @@ async function createLantern(
       })
       .returning();
     return ok(toView(row, now));
+  });
+  // Gli errori di Drizzle riportano i parametri della query, cioè il testo della lanterna,
+  // e un errore non gestito finisce nei log del server.
+  return inserted.catch(() => {
+    throw new Error("Invio della lanterna non riuscito");
   });
 }
 

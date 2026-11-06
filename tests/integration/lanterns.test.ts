@@ -52,6 +52,26 @@ describe("creazione", () => {
     }
   });
 
+  test("un invio fallito non porta il testo della lanterna nell'errore, che finirebbe nei log", async () => {
+    const giulia = await makeUser(db, { name: "Giulia" });
+    const marco = await makeUser(db, { name: "Marco" });
+    const conn = await makeConnection(db, giulia, marco);
+    // Postgres rifiuta il carattere NUL: è un vero errore di insert, con il testo tra i parametri.
+    const failure: Error = await createTextLantern(db, {
+      connectionId: conn.id,
+      senderId: giulia.id,
+      text: "segreto privato\u0000",
+      now,
+    }).then(
+      () => {
+        throw new Error("L'insert doveva fallire");
+      },
+      (error: Error) => error,
+    );
+    expect(failure.message).toBe("Invio della lanterna non riuscito");
+    expect(failure.cause).toBeUndefined();
+  });
+
   test("non membro → not_found", async () => {
     const { conn } = await setup();
     const other = await makeUser(db);

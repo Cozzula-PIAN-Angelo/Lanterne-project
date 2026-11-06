@@ -26,3 +26,11 @@ const FALLBACK = "Qualcosa non è andato, riproviamo tra poco.";
 export function errorMessage(code: AccessErrorCode): string {
   return MESSAGES[code] ?? FALLBACK;
 }
+
+/**
+ * Per chi sta inviando, `not_found` vuol dire che la connessione non esiste più, per esempio
+ * perché l'altra persona ha eliminato l'account: riprovare non servirebbe.
+ */
+export function sendErrorMessage(code: AccessErrorCode): string {
+  return code === "not_found" ? "Questa connessione non c'è più." : errorMessage(code);
+}

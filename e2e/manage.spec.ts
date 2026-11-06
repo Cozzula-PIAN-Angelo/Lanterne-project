@@ -145,6 +145,22 @@ test("eliminare l'account chiede conferma, esce e non permette di rientrare nell
   await expect(luca.getByRole("link", { name: "Anna" })).toHaveCount(0);
 });
 
+test("chi ha la pagina aperta quando l'altro elimina l'account viene avvisato", async ({ browser }) => {
+  const { anna, luca } = await connectPair(browser, "aperta");
+  await luca.getByRole("link", { name: "Anna" }).click();
+  await expect(luca).toHaveURL(/\/persone\//);
+  await luca.getByLabel("La tua lanterna").fill("non sa ancora niente");
+
+  await anna.goto("/impostazioni");
+  await anna.getByLabel("Scrivi ELIMINA per confermare").fill("ELIMINA");
+  await anna.getByRole("button", { name: "Elimina l'account" }).click();
+  await expect(anna).toHaveURL(/\/accedi/);
+
+  await luca.getByRole("button", { name: "Lascia la lanterna" }).click();
+  await expect(luca.getByRole("alert").filter({ hasText: "Questa connessione non c'è più." })).toBeVisible();
+  await expect(luca.getByLabel("La tua lanterna")).toHaveValue("non sa ancora niente");
+});
+
 test("il banner propone il fuso del dispositivo e ricorda il no", async ({ browser }) => {
   const context = await browser.newContext({ timezoneId: "Asia/Tokyo" });
   const page = await context.newPage();

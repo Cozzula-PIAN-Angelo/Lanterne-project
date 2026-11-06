@@ -10,6 +10,7 @@ export default async function setup() {
   const client = postgres(url, { max: 1, onnotice: () => {} });
   try {
     await migrate(drizzle(client), { migrationsFolder: "lib/db/migrations" });
+    await client`DROP SCHEMA IF EXISTS pgboss_test CASCADE`;
   } finally {
     await client.end();
   }

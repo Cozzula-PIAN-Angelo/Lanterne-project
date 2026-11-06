@@ -696,7 +696,7 @@ In `outbox.test.ts`, con uno store in memoria:
 ```ts
 test("un invio riuscito toglie l'elemento")
 test("un errore di rete lascia l'elemento in attesa e ferma il giro")
-test("un rifiuto segna rejected con il messaggio e non riprova da solo") // Review Focus 3
+test("un rifiuto segna rejected con il messaggio e non riprova da solo") // Review Focus 3; vale anche per "Questa connessione non c'è più" (not_found), quando l'altra persona ha eliminato l'account
 test("late è true se revealAt supera expectedRevealAt")
 test("due flush simultanei non inviano due volte")
 test("se il file è già caricato ripete solo la conferma, senza creare una seconda lanterna") // la risposta alla conferma può perdersi anche se il server l'ha registrata

@@ -6,7 +6,7 @@ import { confirmMediaLantern, createMediaLantern, getMediaUrl } from "@/lib/acce
 import { requireOnboardedUser } from "@/lib/auth/session";
 import { getRequestClock } from "@/lib/clock/request";
 import { db } from "@/lib/db/client";
-import { errorMessage, type ActionResult } from "@/lib/messages";
+import { errorMessage, sendErrorMessage, type ActionResult } from "@/lib/messages";
 import { storage } from "@/lib/storage/client";
 
 const requestSchema = z.object({
@@ -43,7 +43,7 @@ export async function requestUploadAction(input: {
     senderId: user.id,
     now: clock.now(),
   });
-  if (!result.ok) return { error: errorMessage(result.error) };
+  if (!result.ok) return { error: sendErrorMessage(result.error) };
   return { ...result.value, revealAt: result.value.revealAt.toISOString() };
 }
 
@@ -58,7 +58,7 @@ export async function confirmUploadAction(input: {
     lanternId: parsed.data.lanternId,
     userId: user.id,
   });
-  if (!result.ok) return { error: errorMessage(result.error) };
+  if (!result.ok) return { error: sendErrorMessage(result.error) };
   const path = `/persone/${parsed.data.connectionId}`;
   revalidatePath(path);
   return { redirectTo: path };
