@@ -50,6 +50,12 @@ tramite `adb`.
 
 Vocali e foto sono stati provati tra Android e desktop. **Su iPhone non sono ancora stati verificati.**
 
+## Installare l'app
+
+Lanterne è una PWA: da Chrome su Android, apri il menu e scegli **Installa app**. Senza rete, ogni
+navigazione mostra una pagina offline; il service worker non conserva nessuna pagina dell'app, perché
+contengono dati personali. Le icone PNG si rigenerano da `public/icon.svg` con `pnpm tsx scripts/icons.ts`.
+
 ## Test
 
 ```bash

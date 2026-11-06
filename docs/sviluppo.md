@@ -366,3 +366,13 @@ La revisione indipendente non ha trovato problemi critici e conferma che i perco
   tra poco", all'infinito. Ora legge "Questa connessione non c'è più", e il testo scritto resta nel campo.
 - **Testo nei log:** gli errori di Drizzle riportano i parametri della query, quindi un insert fallito poteva
   scrivere il testo di una lanterna nei log del server, contro quanto promette la spec. Ora l'errore esce senza.
+
+### Task 9 — App installabile e pagina offline
+- **Manifest e icone:** `app/manifest.ts` descrive l'app; i PNG, compresa la variante maskable per Android, nascono
+  da `public/icon.svg` con `scripts/icons.ts` e si committano.
+- **Service worker minimo:** `public/sw.js` guarda solo le navigazioni: prima la rete, e `/offline` se la rete manca.
+  L'unica cosa in cache è la pagina offline, perché le pagine dell'app contengono dati personali. Il test lo verifica
+  elencando tutta la cache, ed è stato provato con un service worker modificato apposta per salvare le navigazioni.
+- **Pagina offline autosufficiente:** senza rete non arrivano CSS e font, quindi gli stili sono in linea. Il link
+  "Riprova" è un `<a>` normale, perché nemmeno il JavaScript è disponibile.
+- **Test isolati:** il service worker è attivo solo in `e2e/pwa.spec.ts`; gli altri test lo bloccano.

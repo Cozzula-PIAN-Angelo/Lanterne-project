@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
+  <rect id="sfondo" width="512" height="512" rx="112" fill="#131c2e"/>
+  <!-- Tutto il disegno sta entro 195 dal centro: resta dentro la zona sicura delle icone maskable (205). -->
+  <path d="M256 96v36M256 398v24" stroke="#f3c677" stroke-width="10" stroke-linecap="round"/>
+  <rect x="208" y="128" width="96" height="30" rx="10" fill="#b8741f"/>
+  <ellipse cx="256" cy="268" rx="106" ry="114" fill="#eda93f"/>
+  <path d="M256 154v228M216 172c-24 60-24 132 0 192M296 172c24 60 24 132 0 192" fill="none" stroke="#c9842a" stroke-width="7"/>
+  <rect x="216" y="374" width="80" height="26" rx="9" fill="#b8741f"/>
+</svg>
