@@ -3,15 +3,17 @@
 import { useActionState } from "react";
 import { deleteAccountAction } from "@/app/(app)/actions/account";
 import { Button } from "@/components/ui/button";
+import { outboxStore } from "@/lib/client/outbox-store";
 import { dropPushSubscription } from "@/lib/client/push";
 
-export function DeleteAccountForm() {
+export function DeleteAccountForm({ userId }: { userId: string }) {
   const [error, formAction, pending] = useActionState(async (_previous: string | null, formData: FormData) => {
     try {
       const result = await deleteAccountAction(formData);
       if ("error" in result) return result.error;
       // La riga è già sparita con l'account: resta da spegnere l'iscrizione del browser.
       await dropPushSubscription();
+      await outboxStore.clear(userId);
       // Ricarica vera: le pagine già visitate restano in memoria e non devono sopravvivere all'account.
       window.location.assign(result.redirectTo);
       return null;

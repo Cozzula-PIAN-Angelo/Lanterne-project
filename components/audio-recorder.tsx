@@ -1,9 +1,8 @@
 "use client";
 
-import { useRouter } from "next/navigation";
 import { useEffect, useLayoutEffect, useRef, useState, useSyncExternalStore } from "react";
 import { Button } from "@/components/ui/button";
-import { uploadMedia } from "@/lib/client/upload-media";
+import { enqueue } from "@/lib/client/outbox-store";
 import { AUDIO_MAX_SEC } from "@/lib/lanterns/media";
 import { pickRecorderMime } from "@/lib/lanterns/recorder-mime";
 
@@ -26,8 +25,15 @@ function permissionMessage(error: unknown): string {
     : "Il microfono non risponde. Intanto puoi scrivere.";
 }
 
-export function AudioRecorder({ connectionId }: { connectionId: string }) {
-  const router = useRouter();
+export function AudioRecorder({
+  userId,
+  connectionId,
+  expectedRevealAt,
+}: {
+  userId: string;
+  connectionId: string;
+  expectedRevealAt: string;
+}) {
   // undefined durante il rendering sul server: il browser si conosce solo dopo.
   const mime = useSyncExternalStore(NO_CHANGE, supportedMime, () => undefined);
   const [status, setStatus] = useState<Status>("idle");
@@ -66,11 +72,9 @@ export function AudioRecorder({ connectionId }: { connectionId: string }) {
 
   async function send(blob: Blob, durationSec: number) {
     setStatus("sending");
-    const outcome = await uploadMedia({ connectionId, type: "audio", blob, durationSec });
+    // Prima si conserva, poi si invia: da qui in avanti il vocale non si perde. Se ne occupa il pannello.
+    await enqueue({ userId, connectionId, type: "audio", blob, durationSec, expectedRevealAt });
     setStatus("idle");
-    if (outcome.kind === "sent") router.refresh();
-    else if (outcome.kind === "rejected") setError(outcome.message);
-    else setError("Non c'è rete: il vocale non è partito.");
   }
 
   async function start() {

@@ -135,6 +135,8 @@ export async function getChannel(
     arrived: LanternView[];
     memories: LanternView[];
     partnerLeftNothing: boolean;
+    /** Quando partirebbe una lanterna scritta adesso; null se ora non si può inviare. */
+    nextDepartureAt: Date | null;
   }>
 > {
   const { connectionId, userId, now } = input;
@@ -156,6 +158,7 @@ export async function getChannel(
       arrived: [],
       memories: memories.map((l) => toView(l, now)),
       partnerLeftNothing: false,
+      nextDepartureAt: null,
     });
   }
 
@@ -178,12 +181,17 @@ export async function getChannel(
     .orderBy(asc(lanterns.revealAt));
 
   let partnerLeftNothing = false;
+  let nextDepartureAt: Date | null = null;
   if (connection.status === "active" && connection.revealTime) {
     const [me] = await db.select({ timezone: user.timezone }).from(user).where(eq(user.id, userId));
     const myTz = me?.timezone ?? "UTC";
     const last = previousOccurrence(connection.revealTime, myTz, now);
-    const [{ activatedAt }] = await db
-      .select({ activatedAt: connections.activatedAt })
+    const [{ activatedAt, previousRevealTime, revealTimeChangedAt }] = await db
+      .select({
+        activatedAt: connections.activatedAt,
+        previousRevealTime: connections.previousRevealTime,
+        revealTimeChangedAt: connections.revealTimeChangedAt,
+      })
       .from(connections)
       .where(eq(connections.id, connectionId));
     // Se la connessione è nata dopo l'apertura di stasera, il partner non ha avuto occasione.
@@ -191,6 +199,12 @@ export async function getChannel(
     // Basta una lanterna leggibile, anche partita a un altro orario (cambio di fuso o d'orario).
     partnerLeftNothing =
       hadChance && now.getTime() < computeExpiresAt(last, myTz).getTime() && arrived.length === 0;
+    // Nel fuso di chi riceve, come quando il server crea la lanterna.
+    nextDepartureAt = computeRevealAt(
+      { revealTime: connection.revealTime, previousRevealTime, revealTimeChangedAt },
+      connection.partner.timezone,
+      now,
+    );
   }
 
   return ok({
@@ -199,6 +213,7 @@ export async function getChannel(
     arrived: arrived.map((l) => toView(l, now)),
     memories: memories.map((l) => toView(l, now)),
     partnerLeftNothing,
+    nextDepartureAt,
   });
 }
 

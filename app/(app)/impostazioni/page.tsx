@@ -54,9 +54,9 @@ export default async function SettingsPage({ searchParams }: PageProps<"/imposta
         </ul>
       </section>
 
-      <SignOutButton />
+      <SignOutButton userId={user.id} />
 
-      <DeleteAccountForm />
+      <DeleteAccountForm userId={user.id} />
     </div>
   );
 }

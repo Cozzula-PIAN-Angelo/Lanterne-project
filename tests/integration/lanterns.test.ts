@@ -118,6 +118,26 @@ describe("creazione", () => {
   });
 });
 
+test("nextDepartureAt usa il fuso del partner ed è null se la connessione non è attiva", async () => {
+  const { giulia, marco, conn } = await setup();
+  // Giulia scrive a Marco, a New York: le 21:30 sono le sue.
+  const res = await getChannel(db, { connectionId: conn.id, userId: giulia.id, now });
+  if (!res.ok) throw new Error(res.error);
+  expect(res.value.nextDepartureAt?.toISOString()).toBe(REVEAL);
+
+  // Per Marco il partner è Giulia, a Roma: le 21:30 di domani.
+  const other = await getChannel(db, { connectionId: conn.id, userId: marco.id, now });
+  if (!other.ok) throw new Error(other.error);
+  expect(other.value.nextDepartureAt?.toISOString()).toBe("2026-11-03T20:30:00.000Z");
+
+  for (const status of ["pending", "ended"] as const) {
+    await db.update(connections).set({ status }).where(eq(connections.id, conn.id));
+    const closed = await getChannel(db, { connectionId: conn.id, userId: giulia.id, now });
+    if (!closed.ok) throw new Error(closed.error);
+    expect(closed.value.nextDepartureAt).toBeNull();
+  }
+});
+
 describe("visibilità", () => {
   test("arriva a revealAt e sparisce a expiresAt", async () => {
     const { giulia, marco, conn } = await setup();

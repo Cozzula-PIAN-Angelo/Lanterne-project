@@ -1,12 +1,18 @@
 "use client";
 
-import { useRouter } from "next/navigation";
 import { useState, type ChangeEvent } from "react";
 import { compressPhoto } from "@/lib/client/compress-photo";
-import { uploadMedia } from "@/lib/client/upload-media";
+import { enqueue } from "@/lib/client/outbox-store";
 
-export function PhotoPicker({ connectionId }: { connectionId: string }) {
-  const router = useRouter();
+export function PhotoPicker({
+  userId,
+  connectionId,
+  expectedRevealAt,
+}: {
+  userId: string;
+  connectionId: string;
+  expectedRevealAt: string;
+}) {
   const [pending, setPending] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -18,10 +24,7 @@ export function PhotoPicker({ connectionId }: { connectionId: string }) {
       setError("Questa foto non si riesce ad aprire: provane un'altra.");
       return;
     }
-    const outcome = await uploadMedia({ connectionId, type: "photo", blob });
-    if (outcome.kind === "sent") router.refresh();
-    else if (outcome.kind === "rejected") setError(outcome.message);
-    else setError("Non c'è rete: la foto non è partita.");
+    await enqueue({ userId, connectionId, type: "photo", blob, expectedRevealAt });
   }
 
   async function choose(event: ChangeEvent<HTMLInputElement>) {

@@ -392,3 +392,26 @@ La revisione indipendente non ha trovato problemi critici e conferma che i perco
   installata, con la guida "Aggiungi alla schermata Home".
 - **Limite dei test:** il Chromium headless non mostra notifiche e non raggiunge un servizio push. Gli e2e simulano quella
   parte del browser; la consegna reale si verifica sul telefono nel Task 12.
+
+### Task 11 — Coda offline per vocali e foto
+- **Un solo percorso:** registratore e selettore foto non inviano più direttamente. Scrivono il file in IndexedDB e
+  avvisano `OutboxPanel`, che lo invia. Da quel momento un vocale sopravvive a rete assente, pagina chiusa o crash.
+  Testi e pensieri restano fuori dalla coda: si riscrivono in un attimo.
+- **Niente doppioni se si perde una risposta:** dopo il caricamento il biglietto (`lanternId`) si salva sull'elemento,
+  prima di confermare. Se la risposta alla conferma si perde, il giro successivo ripete solo la conferma, che è
+  idempotente. Se intanto la pulizia ha tolto un caricamento mai confermato, l'invio riparte dal file.
+- **Più schede:** due schede aperte al ritorno della rete inviavano lo stesso vocale due volte, come ha dimostrato
+  un e2e. Ora il giro passa dalla Web Locks API: la seconda scheda aspetta e rilegge una coda già svuotata. Anche la
+  scheda che non ha inviato aggiorna la pagina, quando vede la coda accorciarsi.
+- **Errori distinti:** la rete assente ferma il giro e si riprova da soli; un rifiuto, come una connessione chiusa,
+  resta visibile con il suo messaggio e con "Riprova" e "Scarta", senza tentativi infiniti.
+- **PUT bloccato:** un caricamento senza risposta scade dopo 10 minuti e diventa un errore di rete.
+- **Partenza in ritardo:** `getChannel` espone `nextDepartureAt`, nel fuso di chi riceve. Se la lanterna parte dopo
+  quell'orario, l'app avvisa che partirà la sera dopo.
+- **Dispositivo condiviso:** uscendo, l'app dice quante lanterne non sono partite e chiede conferma prima di
+  cancellarle. Anche l'eliminazione dell'account svuota la coda. Gli elementi sono legati all'utente che li ha creati.
+- **Senza IndexedDB:** il file resta in memoria e il pannello chiede di non chiudere la pagina.
+- **Problema aperto:** nella suite e2e completa, una navigazione verso il canale a volte resta ferma su "Un attimo…"
+  e il test scade. È successo in 4 esecuzioni su 6, sempre in un solo test di `e2e/offline.spec.ts`, ogni volta diverso.
+  Non si è mai riprodotto eseguendo quel file da solo o ripetendo la sola navigazione. La causa non è nota, e non è
+  ancora escluso che riguardi anche chi usa l'app.

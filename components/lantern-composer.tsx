@@ -8,7 +8,16 @@ import { Button } from "@/components/ui/button";
 import { useActionForm } from "@/components/use-action-form";
 import { TEXT_MAX, THOUGHTS } from "@/lib/lanterns/constants";
 
-export function LanternComposer({ connectionId }: { connectionId: string }) {
+export function LanternComposer({
+  userId,
+  connectionId,
+  expectedRevealAt,
+}: {
+  userId: string;
+  connectionId: string;
+  /** Quando partirebbe adesso: se poi parte più tardi, la coda offline lo fa sapere. */
+  expectedRevealAt: string;
+}) {
   const [text, setText] = useState("");
   const [textError, textAction, textPending] = useActionForm(async (formData) => {
     const result = await sendTextAction(formData);
@@ -20,8 +29,8 @@ export function LanternComposer({ connectionId }: { connectionId: string }) {
 
   return (
     <div className="space-y-4">
-      <AudioRecorder connectionId={connectionId} />
-      <PhotoPicker connectionId={connectionId} />
+      <AudioRecorder userId={userId} connectionId={connectionId} expectedRevealAt={expectedRevealAt} />
+      <PhotoPicker userId={userId} connectionId={connectionId} expectedRevealAt={expectedRevealAt} />
 
       <form action={textAction} className="space-y-2">
         <input type="hidden" name="connectionId" value={connectionId} />
