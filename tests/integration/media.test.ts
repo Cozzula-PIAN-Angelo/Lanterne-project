@@ -1,6 +1,7 @@
 import { randomUUID } from "node:crypto";
 import { eq } from "drizzle-orm";
 import { beforeAll, beforeEach, describe, expect, test } from "vitest";
+import { blockUser } from "@/lib/access/blocks";
 import { endConnection } from "@/lib/access/connections";
 import { deleteLantern, getChannel, saveLantern } from "@/lib/access/lanterns";
 import { confirmMediaLantern, createMediaLantern, getMediaUrl, type MediaInput } from "@/lib/access/media";
@@ -243,13 +244,17 @@ describe("confirmMediaLantern", () => {
     expect((await rowOf(ticket.lanternId)).status).toBe("uploading");
   });
 
-  test("confirm con dimensione o tipo diversi: upload_invalid, riga eliminata e chiave in coda", async () => {
+  test.each([
+    ["più grande", "audio/mp4", 9],
+    ["più piccolo", "audio/mp4", 2],
+    ["di un altro tipo", "image/jpeg", 4],
+  ])("confirm con un file %s: upload_invalid, riga eliminata e chiave in coda", async (_, mime, bytes) => {
     const ctx = await setup();
     const ticket = await request(ctx);
     const { mediaKey } = await rowOf(ticket.lanternId);
     // Lo storage rifiuterebbe il PUT firmato: si simula un oggetto arrivato comunque diverso.
-    const other = await storage.signUpload({ key: mediaKey!, mime: "image/jpeg", bytes: 9 });
-    await fetch(other.url, { method: "PUT", headers: other.headers, body: new Uint8Array(9) });
+    const other = await storage.signUpload({ key: mediaKey!, mime, bytes });
+    await fetch(other.url, { method: "PUT", headers: other.headers, body: new Uint8Array(bytes) });
 
     expect(
       await confirmMediaLantern(db, storage, { lanternId: ticket.lanternId, userId: ctx.giulia.id }),
@@ -275,6 +280,18 @@ describe("confirmMediaLantern", () => {
     const { mediaKey } = await rowOf(ticket.lanternId);
     await put(ticket);
     await endConnection(db, { connectionId: ctx.conn.id, userId: ctx.marco.id, now });
+    expect(
+      await confirmMediaLantern(db, storage, { lanternId: ticket.lanternId, userId: ctx.giulia.id }),
+    ).toEqual({ ok: false, error: "not_found" });
+    expect(await queued()).toEqual([mediaKey]);
+  });
+
+  test("blocco durante l'upload: confirm dà not_found e la chiave è in coda", async () => {
+    const ctx = await setup();
+    const ticket = await request(ctx);
+    const { mediaKey } = await rowOf(ticket.lanternId);
+    await put(ticket);
+    await blockUser(db, { blockerId: ctx.marco.id, blockedId: ctx.giulia.id, now });
     expect(
       await confirmMediaLantern(db, storage, { lanternId: ticket.lanternId, userId: ctx.giulia.id }),
     ).toEqual({ ok: false, error: "not_found" });

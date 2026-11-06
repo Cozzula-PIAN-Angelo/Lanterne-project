@@ -304,3 +304,17 @@ che riproduce il problema:
 - **Come si collega il telefono:** il debug wireless e `adb reverse` espongono `localhost` sul telefono.
   Chrome lo considera un contesto sicuro, quindi il microfono funziona senza HTTPS. Il cavo USB
   richiederebbe un driver da installare come amministratore.
+
+### Revisione del blocco A
+La revisione indipendente non ha trovato problemi critici. Le correzioni riguardano quasi tutte `<Activity>`,
+che nasconde la pagina lasciandola viva e che i test non avevano mai messo alla prova.
+- **Registratore:** lasciando la pagina mentre si registra, al ritorno restava "Ferma e invia" con un pulsante
+  che non faceva nulla. Ora torna pronto e dice che la registrazione si è interrotta.
+- **Microfono:** se il permesso arrivava dopo aver lasciato la pagina, il microfono si accendeva senza un modo
+  per spegnerlo. Ora si rilascia subito, anche quando `MediaRecorder` non riesce a partire.
+- **Player:** `display: none` non ferma l'audio, quindi il vocale continuava a suonare in un'altra pagina. Ora
+  si mette in pausa quando la pagina viene nascosta.
+- **Test più stretti:** dimensione più grande, più piccola e tipo diverso sono casi separati, perché nel test
+  unico togliere metà del controllo non faceva fallire nulla. Si aggiunge il blocco durante un upload.
+- **Piano aggiornato:** la coda di cancellazione del Task 6 aspetterà un'ora, perché un PUT già iniziato può
+  finire dopo la cancellazione della riga. Il Task 11 ripeterà solo la conferma se il file è già caricato.

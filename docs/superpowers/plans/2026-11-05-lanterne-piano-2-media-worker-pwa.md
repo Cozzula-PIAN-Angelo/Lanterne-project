@@ -429,7 +429,7 @@ git commit -m "docs: record real device media check on Android"
   ```ts
   export function cleanupExpired(db: Db, input: { now: Date }): Promise<{ deleted: number }>;
   export function cleanupAbandoned(db: Db, input: { now: Date }): Promise<{ deleted: number }>;
-  export function drainStorageDeletions(db: Db, storage: Pick<MediaStorage, "remove">, input?: { limit?: number }): Promise<{ removed: number; failed: number }>;
+  export function drainStorageDeletions(db: Db, storage: Pick<MediaStorage, "remove">, input: { now: Date; limit?: number }): Promise<{ removed: number; failed: number }>;
   ```
 
 - [ ] **Step 1: Scrivi i test che falliscono**
@@ -441,6 +441,7 @@ test("cleanupAbandoned elimina le uploading create da più di un'ora, non quelle
 test("drain rimuove l'oggetto e poi la riga della coda")
 test("se remove fallisce la chiave resta in coda e le altre proseguono")
 test("drain rispetta limit; il default è 100")
+test("drain lascia in coda le chiavi accodate da meno di un'ora")
 test("una lanterna già scaduta resta invisibile anche se la pulizia non è mai girata")
 ```
 
@@ -451,7 +452,7 @@ Expected: FAIL.
 
 - [ ] **Step 3: Implementa**
 
-Delete mirate su `lanterns`; il trigger accoda i file. `drainStorageDeletions` legge le chiavi in ordine di `createdAt`, chiama `remove` una alla volta ed elimina la riga solo dopo il successo. Non logga il contenuto di nessuna lanterna.
+Delete mirate su `lanterns`; il trigger accoda i file. `drainStorageDeletions` legge le chiavi accodate da almeno un'ora in ordine di `createdAt`, chiama `remove` una alla volta ed elimina la riga solo dopo il successo. Il margine serve perché un PUT già iniziato può finire dopo la cancellazione della riga: toglierlo prima lascerebbe un file privato per sempre, senza riga e senza coda. Non logga il contenuto di nessuna lanterna.
 
 - [ ] **Step 4: Verifica che passino**
 
@@ -698,6 +699,8 @@ test("un errore di rete lascia l'elemento in attesa e ferma il giro")
 test("un rifiuto segna rejected con il messaggio e non riprova da solo") // Review Focus 3
 test("late è true se revealAt supera expectedRevealAt")
 test("due flush simultanei non inviano due volte")
+test("se il file è già caricato ripete solo la conferma, senza creare una seconda lanterna") // la risposta alla conferma può perdersi anche se il server l'ha registrata
+test("un PUT bloccato scade e diventa errore di rete")
 test("legge solo gli elementi dell'utente corrente")
 ```
 

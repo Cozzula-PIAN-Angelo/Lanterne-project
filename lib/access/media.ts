@@ -19,7 +19,11 @@ import { localDateOf, localInstant } from "@/lib/time/reveal-time";
 import { fail, ok, type AccessResult } from "./errors";
 import { findVisibleForRecipient, openConnectionForSender } from "./lanterns";
 
-/** Un URL firmato dura 5 minuti: oltre, un upload "uploading" non può più concludersi. */
+/**
+ * Un URL firmato dura 5 minuti: oltre, un upload non ancora iniziato non può più partire.
+ * Uno già in corso può invece finire più tardi: per questo la coda dei file da cancellare
+ * aspetta un margine prima di toccarli (Task 6).
+ */
 const UPLOAD_WINDOW_MS = 5 * 60 * 1000;
 
 export type MediaInput = {

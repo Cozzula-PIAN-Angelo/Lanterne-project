@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useLayoutEffect, useRef, useState } from "react";
 import { mediaUrlAction } from "@/app/(app)/actions/media";
 import { Button } from "@/components/ui/button";
 
@@ -18,6 +18,13 @@ export function MediaPlayer({ lanternId, type, action, label }: Props) {
   const [url, setUrl] = useState<string | null>(null);
   const [pending, setPending] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const audio = useRef<HTMLAudioElement>(null);
+
+  // Activity nasconde la pagina con display: none, che non ferma l'audio.
+  useLayoutEffect(() => {
+    const element = audio.current;
+    return () => element?.pause();
+  }, [url]);
 
   async function open() {
     setPending(true);
@@ -38,7 +45,7 @@ export function MediaPlayer({ lanternId, type, action, label }: Props) {
   };
 
   if (url && type === "audio") {
-    return <audio controls src={url} onError={expired} className="w-full" aria-label={label} />;
+    return <audio ref={audio} controls src={url} onError={expired} className="w-full" aria-label={label} />;
   }
   if (url) {
     // L'URL firmato cambia a ogni apertura e non passa dall'ottimizzatore di immagini.

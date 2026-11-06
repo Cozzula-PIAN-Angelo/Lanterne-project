@@ -21,10 +21,13 @@ describe("MediaStorage", () => {
     expect(await storage.stat(key)).toEqual({ bytes: 4, mime: "audio/webm" });
   });
 
-  it("un PUT con un'altra dimensione viene rifiutato", async () => {
+  it.each([
+    ["più grande", 5],
+    ["più piccolo", 3],
+  ])("un PUT %s della dimensione firmata viene rifiutato", async (_, size) => {
     const key = newKey();
     const { url, headers } = await storage.signUpload({ key, mime: "audio/webm", bytes: 4 });
-    const res = await fetch(url, { method: "PUT", headers, body: bytes(5) });
+    const res = await fetch(url, { method: "PUT", headers, body: bytes(size) });
     expect(res.ok).toBe(false);
     expect(await storage.stat(key)).toBeNull();
   });
