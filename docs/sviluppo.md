@@ -344,3 +344,13 @@ che nasconde la pagina lasciandola viva e che i test non avevano mai messo alla 
   sue tabelle, quindi anche a lui arriva un errore nuovo, senza la causa originale.
 - **Prova reale:** `pnpm worker` sul database di test ha cancellato una lanterna scaduta. Scaduto il margine,
   il cron ha tolto da solo il file dallo storage e la riga dalla coda.
+
+### Task 8 — Eliminazione dell'account e testo sulla chiusura
+- **Una sola riga da cancellare:** `deleteAccount` elimina `user`, e le cascate del Piano 1 tolgono sessioni,
+  connessioni, inviti e blocchi. Il trigger accoda i file delle lanterne, anche quelle conservate dall'altra
+  persona: il testo lo dice prima di confermare.
+- **Conferma scritta:** bisogna scrivere ELIMINA. Uno spazio dalla tastiera del telefono non conta. Una parola
+  sbagliata riceve un messaggio specifico, non quello generico.
+- **Uscita con ricarica vera:** come per "Esci", perché `<Activity>` terrebbe in memoria le pagine già visitate.
+- **Testo sulla chiusura:** dice ora che spariscono tutte le lanterne non conservate, anche quelle già arrivate.
+  È quello che il codice faceva già: il vecchio testo, e la spec, promettevano meno di quanto succede.

@@ -82,7 +82,6 @@ test("chiudere una connessione chiede conferma e libera il posto", async ({ brow
   await anna.getByLabel("La tua lanterna").fill("stavo scrivendo questo");
 
   await luca.getByRole("button", { name: "Chiudi la connessione" }).click();
-  await expect(luca.getByText("Le lanterne non ancora arrivate verranno eliminate. I ricordi restano.")).toBeVisible();
   await luca.getByRole("button", { name: "Annulla" }).click();
   await expect(luca.getByRole("button", { name: "Sì, chiudi" })).toHaveCount(0);
 
@@ -99,6 +98,51 @@ test("chiudere una connessione chiede conferma e libera il posto", async ({ brow
   await expect(anna.getByText("Questa connessione è chiusa.")).toBeVisible();
   await expect(anna.getByLabel("La tua lanterna")).toHaveCount(0);
   await expect(anna.getByRole("button", { name: "Cambia orario" })).toHaveCount(0);
+});
+
+test("chiudere una connessione avvisa che spariscono le lanterne non conservate", async ({ browser }) => {
+  const { luca } = await connectPair(browser, "avviso");
+  await luca.getByRole("link", { name: "Anna" }).click();
+  await expect(luca).toHaveURL(/\/persone\//);
+
+  await luca.getByRole("button", { name: "Chiudi la connessione" }).click();
+  await expect(
+    luca.getByText("Le lanterne non conservate verranno eliminate, anche quelle già arrivate. I ricordi restano."),
+  ).toBeVisible();
+});
+
+test("eliminare l'account chiede conferma, esce e non permette di rientrare nella sessione", async ({ browser }) => {
+  const { anna, luca } = await connectPair(browser, "addio");
+
+  await anna.goto("/impostazioni");
+  const section = anna.getByRole("region", { name: "Elimina l'account" });
+  await expect(
+    section.getByText(
+      "Spariscono il tuo profilo, le tue connessioni e tutte le lanterne, anche quelle che altri avevano conservato. Non si può annullare.",
+    ),
+  ).toBeVisible();
+
+  // Senza la parola giusta non succede nulla.
+  await section.getByLabel("Scrivi ELIMINA per confermare").fill("forse");
+  await section.getByRole("button", { name: "Elimina l'account" }).click();
+  await expect(section.getByRole("alert")).toHaveText("Per confermare scrivi ELIMINA.");
+  await anna.reload();
+  await expect(anna.getByRole("heading", { name: "Impostazioni" })).toBeVisible();
+
+  await section.getByLabel("Scrivi ELIMINA per confermare").fill("ELIMINA");
+  await section.getByRole("button", { name: "Elimina l'account" }).click();
+  await expect(anna).toHaveURL(/\/accedi/);
+
+  // La sessione non esiste più: nessuna pagina riapre l'account.
+  await anna.goto("/");
+  await expect(anna).toHaveURL(/\/accedi/);
+  await anna.goto("/impostazioni");
+  await expect(anna).toHaveURL(/\/accedi/);
+
+  // Per l'altra persona, Anna è sparita e il posto è libero.
+  await luca.goto("/");
+  await expect(luca.getByRole("link", { name: "Invita qualcuno" })).toHaveCount(5);
+  await expect(luca.getByRole("link", { name: "Anna" })).toHaveCount(0);
 });
 
 test("il banner propone il fuso del dispositivo e ricorda il no", async ({ browser }) => {

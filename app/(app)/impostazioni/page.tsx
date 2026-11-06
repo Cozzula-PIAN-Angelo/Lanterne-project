@@ -2,6 +2,7 @@ import Link from "next/link";
 import { unblockAction } from "@/app/(app)/actions/connections";
 import { ActionButton } from "@/components/action-button";
 import { AllowSavingToggle } from "@/components/allow-saving-toggle";
+import { DeleteAccountForm } from "@/components/delete-account-form";
 import { ProfileForm } from "@/components/profile/profile-form";
 import { SignOutButton } from "@/components/sign-out-button";
 import { listBlocked } from "@/lib/access/blocks";
@@ -51,6 +52,8 @@ export default async function SettingsPage({ searchParams }: PageProps<"/imposta
       </section>
 
       <SignOutButton />
+
+      <DeleteAccountForm />
     </div>
   );
 }

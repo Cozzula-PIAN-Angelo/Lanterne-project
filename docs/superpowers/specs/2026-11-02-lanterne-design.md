@@ -70,7 +70,7 @@ Non è una chat e non vuole sostituire WhatsApp o altri social: è un **rituale 
 - Le lanterne conservate finiscono nei **Ricordi** della connessione.
 
 ### Chiusura, blocco, eliminazione
-- **Chiusura di una connessione:** chiunque dei due, in qualsiasi momento. Le lanterne non ancora aperte vengono eliminate; i ricordi già salvati restano a chi li ha salvati.
+- **Chiusura di una connessione:** chiunque dei due, in qualsiasi momento. Le lanterne non conservate vengono eliminate, anche quelle già arrivate; i ricordi già salvati restano a chi li ha salvati.
 - **Blocco:**
   - chiude la connessione;
   - elimina le lanterne non aperte in entrambe le direzioni;
