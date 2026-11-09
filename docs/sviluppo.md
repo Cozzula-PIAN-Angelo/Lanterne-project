@@ -403,6 +403,9 @@ La revisione indipendente non ha trovato problemi critici e conferma che i perco
 - **Più schede:** due schede aperte al ritorno della rete inviavano lo stesso vocale due volte, come ha dimostrato
   un e2e. Ora il giro passa dalla Web Locks API: la seconda scheda aspetta e rilegge una coda già svuotata. Anche la
   scheda che non ha inviato aggiorna la pagina, quando vede la coda accorciarsi.
+- **Tentativi automatici:** con la rete accesa nessun evento dice che il server è tornato raggiungibile, quindi un invio
+  fallito si riprova dopo 5 secondi, 30 secondi e poi ogni 2 minuti, e subito quando si torna sull'app. Il ritmo è
+  limitato perché ogni tentativo può riservare un vocale intero per 5 minuti sul tetto giornaliero.
 - **Errori distinti:** la rete assente ferma il giro e si riprova da soli; un rifiuto, come una connessione chiusa,
   resta visibile con il suo messaggio e con "Riprova" e "Scarta", senza tentativi infiniti.
 - **PUT bloccato:** un caricamento senza risposta scade dopo 10 minuti e diventa un errore di rete.
@@ -434,7 +437,8 @@ Nothing A024 collegato al PC con il debug wireless e `adb reverse`, con il worke
 Il pannello Viaggio nel tempo non vale per il worker, che segue l'ora reale: per non aspettare la sera, durante la prova
 l'orario di arrivo di una lanterna è stato anticipato direttamente nel database di sviluppo. Il cavo USB resta escluso
 su questo PC, perché Windows assegna al telefono il driver generico WinUSB e sostituirlo richiede i permessi di
-amministratore. iPhone resta non verificato.
+amministratore. iPhone resta non verificato. La prova è stata fatta con `pnpm dev`, che in alcuni casi ricarica la
+pagina da solo: l'invio automatico visto al ritorno della rete non vale quindi come prova del comportamento in produzione.
 
-**Stato del Piano 2:** 167 test di integrazione, 113 unit e 45 e2e verdi, con typecheck, lint e build puliti. Prossimo
-passo: la revisione del blocco finale, poi l'unione in `main`.
+**Stato del Piano 2:** 167 test di integrazione, 114 unit e 47 e2e verdi, con typecheck, lint e build puliti. La
+revisione del blocco finale ha portato ai tentativi automatici della coda offline.

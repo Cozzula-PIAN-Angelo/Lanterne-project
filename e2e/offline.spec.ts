@@ -93,6 +93,38 @@ test("la coda sopravvive alla chiusura della pagina", async ({ browser }) => {
   expect(await voiceCount(connectionId)).toBe(1);
 });
 
+test("un invio fallito con la rete accesa riprova da solo", async ({ browser }) => {
+  test.setTimeout(60_000);
+  const { anna } = await connectPair(browser, "offline-riprova-sola");
+  await openChannel(anna, "Luca");
+  await breakStorage(anna);
+  await record(anna);
+  await expect(anna.getByText(WAITING)).toBeVisible();
+
+  await anna.unroute(/:9000\//);
+  await expect(anna.getByRole("region", { name: "Le tue lanterne" }).getByText("Vocale, meno di un minuto")).toBeVisible({
+    timeout: 20_000,
+  });
+  await expect(anna.getByText(WAITING)).toHaveCount(0);
+});
+
+test("tornando sull'app un invio fallito riprova subito", async ({ browser }) => {
+  test.setTimeout(60_000);
+  const { anna } = await connectPair(browser, "offline-riprova-subito");
+  await openChannel(anna, "Luca");
+  await breakStorage(anna);
+  await record(anna);
+  await expect(anna.getByText(WAITING)).toBeVisible();
+  // Passa il primo tentativo automatico: il prossimo sarebbe tra 30 secondi, oltre l'attesa qui sotto.
+  await anna.waitForTimeout(7000);
+
+  await anna.unroute(/:9000\//);
+  await anna.evaluate(() => document.dispatchEvent(new Event("visibilitychange")));
+  await expect(anna.getByRole("region", { name: "Le tue lanterne" }).getByText("Vocale, meno di un minuto")).toBeVisible({
+    timeout: 10_000,
+  });
+});
+
 test("riprova e scarta funzionano dopo un rifiuto", async ({ browser }) => {
   const { anna } = await connectPair(browser, "offline-rifiuto");
   const connectionId = await openChannel(anna, "Luca");

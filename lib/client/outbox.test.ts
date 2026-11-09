@@ -1,6 +1,10 @@
 import { expect, test, vi } from "vitest";
-import { flushOutbox, type OutboxItem, type OutboxStore } from "./outbox";
+import { flushOutbox, retryDelayMs, type OutboxItem, type OutboxStore } from "./outbox";
 import type { UploadOutcome } from "./upload-media";
+
+test("i tentativi automatici si diradano fino a due minuti", () => {
+  expect([0, 1, 2, 3, 50].map(retryDelayMs)).toEqual([5_000, 30_000, 120_000, 120_000, 120_000]);
+});
 
 const EXPECTED = "2026-11-03T02:30:00.000Z";
 const NEXT_EVENING = "2026-11-04T02:30:00.000Z";

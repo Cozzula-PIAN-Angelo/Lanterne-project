@@ -23,6 +23,16 @@ export type OutboxStore = {
 
 type FlushResult = { sent: { id: string; late: boolean }[] };
 
+const RETRY_DELAYS_MS = [5_000, 30_000, 120_000];
+
+/**
+ * L'attesa prima del prossimo tentativo automatico.
+ * Ogni tentativo può riservare un vocale intero per 5 minuti: un ritmo più fitto farebbe scattare il tetto giornaliero.
+ */
+export function retryDelayMs(attempt: number): number {
+  return RETRY_DELAYS_MS[Math.min(attempt, RETRY_DELAYS_MS.length - 1)];
+}
+
 async function deliver(store: OutboxStore, item: OutboxItem, upload: typeof uploadMedia): Promise<UploadOutcome> {
   const attempt = (current: OutboxItem) =>
     upload({

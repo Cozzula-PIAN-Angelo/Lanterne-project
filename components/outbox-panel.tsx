@@ -3,7 +3,7 @@
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
-import { flushOutbox, type OutboxItem } from "@/lib/client/outbox";
+import { flushOutbox, retryDelayMs, type OutboxItem } from "@/lib/client/outbox";
 import { isHeldInMemory, OUTBOX_CHANGED, outboxStore } from "@/lib/client/outbox-store";
 import { uploadMedia } from "@/lib/client/upload-media";
 
@@ -16,6 +16,7 @@ export function OutboxPanel({ userId }: { userId: string }) {
   const [late, setLate] = useState(false);
   const running = useRef(false);
   const again = useRef(false);
+  const attempts = useRef(0);
 
   const run = useCallback(async () => {
     // Un elemento aggiunto a giro iniziato non ne fa parte: serve un altro giro subito dopo.
@@ -34,7 +35,10 @@ export function OutboxPanel({ userId }: { userId: string }) {
         if (sent.length > 0) setLate(sent.some((item) => item.late));
         // Anche quando ha inviato un'altra scheda: questa pagina deve mostrare la lanterna partita.
         const after = await outboxStore.list(userId);
-        if (sent.length > 0 || after.length < before.length) router.refresh();
+        if (sent.length > 0 || after.length < before.length) {
+          attempts.current = 0;
+          router.refresh();
+        }
       } while (again.current);
     } finally {
       running.current = false;
@@ -45,14 +49,33 @@ export function OutboxPanel({ userId }: { userId: string }) {
 
   useEffect(() => {
     const start = () => void run();
+    const restart = () => {
+      attempts.current = 0;
+      start();
+    };
+    const onVisibility = () => {
+      if (document.visibilityState === "visible") restart();
+    };
     start();
-    window.addEventListener("online", start);
+    window.addEventListener("online", restart);
     window.addEventListener(OUTBOX_CHANGED, start);
+    document.addEventListener("visibilitychange", onVisibility);
     return () => {
-      window.removeEventListener("online", start);
+      window.removeEventListener("online", restart);
       window.removeEventListener(OUTBOX_CHANGED, start);
+      document.removeEventListener("visibilitychange", onVisibility);
     };
   }, [run]);
+
+  // Con la rete accesa nessun evento dice che il server è di nuovo raggiungibile: si riprova a intervalli.
+  useEffect(() => {
+    if (sending || navigator.onLine === false || !items.some((item) => item.status === "waiting")) return;
+    const timer = setTimeout(() => {
+      attempts.current += 1;
+      void run();
+    }, retryDelayMs(attempts.current));
+    return () => clearTimeout(timer);
+  }, [items, sending, run]);
 
   async function retry(item: OutboxItem) {
     await outboxStore.put({ ...item, status: "waiting", message: undefined });
