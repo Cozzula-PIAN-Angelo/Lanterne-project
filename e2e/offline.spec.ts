@@ -12,6 +12,8 @@ async function openChannel(page: Page, partner: string) {
   await page.goto("/");
   await page.getByRole("link", { name: partner }).click();
   await expect(page).toHaveURL(/\/persone\//);
+  // L'URL cambia mentre la pagina è ancora in streaming: andare offline adesso la lascerebbe su "Un attimo…".
+  await expect(page.getByRole("button", { name: "Registra" })).toBeVisible();
   return page.url().split("/persone/")[1];
 }
 

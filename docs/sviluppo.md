@@ -411,7 +411,9 @@ La revisione indipendente non ha trovato problemi critici e conferma che i perco
 - **Dispositivo condiviso:** uscendo, l'app dice quante lanterne non sono partite e chiede conferma prima di
   cancellarle. Anche l'eliminazione dell'account svuota la coda. Gli elementi sono legati all'utente che li ha creati.
 - **Senza IndexedDB:** il file resta in memoria e il pannello chiede di non chiudere la pagina.
-- **Problema aperto:** nella suite e2e completa, una navigazione verso il canale a volte resta ferma su "Un attimo…"
-  e il test scade. Succede in modo intermittente, sempre in un solo test di `e2e/offline.spec.ts`, ogni volta diverso,
-  sia nella suite completa sia eseguendo quel file da solo. La causa non è nota, e non è ancora escluso che riguardi
-  anche chi usa l'app.
+- **Un test instabile, risolto:** in `e2e/offline.spec.ts` la navigazione verso il canale a volte restava ferma su
+  "Un attimo…" e il test scadeva. Il trace di Playwright ha mostrato la causa: l'URL cambia quando la risposta RSC è
+  ancora in streaming, e il test spegneva la rete proprio in quel momento. Spegnendola apposta al cambio di URL, il
+  blocco si è ripresentato in 5 tentativi su 8, e in tutti i casi la pagina si è completata da sola al ritorno della
+  rete: per chi usa l'app il caricamento dura quanto l'assenza di rete. Ora il test aspetta il tasto "Registra" prima
+  di andare offline. Prima della correzione falliva 5 suite complete su 8, dopo ne sono passate 6 su 6.
