@@ -417,3 +417,24 @@ La revisione indipendente non ha trovato problemi critici e conferma che i perco
   blocco si è ripresentato in 5 tentativi su 8, e in tutti i casi la pagina si è completata da sola al ritorno della
   rete: per chi usa l'app il caricamento dura quanto l'assenza di rete. Ora il test aspetta il tasto "Registra" prima
   di andare offline. Prima della correzione falliva 5 suite complete su 8, dopo ne sono passate 6 su 6.
+
+### Task 12 — Prova finale su Android
+
+Gli e2e simulano le notifiche e la rete: alcune cose si vedono solo su un telefono vero. La prova è stata fatta su un
+Nothing A024 collegato al PC con il debug wireless e `adb reverse`, con il worker acceso.
+
+| Controllo | Esito |
+|---|---|
+| Installazione da Chrome | Icona nella schermata Home, l'app si apre a schermo intero |
+| Notifica all'arrivo di una lanterna | Inviata dal worker 54 secondi dopo l'orario |
+| Tocco sulla notifica | Si apre il canale di chi ha inviato la lanterna |
+| Modalità aereo durante un vocale | "In attesa di rete", poi invio al ritorno senza toccare l'app |
+| Navigazione in modalità aereo | Compare la pagina offline a tutto schermo |
+
+Il pannello Viaggio nel tempo non vale per il worker, che segue l'ora reale: per non aspettare la sera, durante la prova
+l'orario di arrivo di una lanterna è stato anticipato direttamente nel database di sviluppo. Il cavo USB resta escluso
+su questo PC, perché Windows assegna al telefono il driver generico WinUSB e sostituirlo richiede i permessi di
+amministratore. iPhone resta non verificato.
+
+**Stato del Piano 2:** 167 test di integrazione, 113 unit e 45 e2e verdi, con typecheck, lint e build puliti. Prossimo
+passo: la revisione del blocco finale, poi l'unione in `main`.
