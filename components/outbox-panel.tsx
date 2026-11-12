@@ -3,7 +3,7 @@
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
-import { flushOutbox, retryDelayMs, type OutboxItem } from "@/lib/client/outbox";
+import { flushOutbox, markForRetry, retryDelayMs, type OutboxItem } from "@/lib/client/outbox";
 import { isHeldInMemory, OUTBOX_CHANGED, outboxStore } from "@/lib/client/outbox-store";
 import { uploadMedia } from "@/lib/client/upload-media";
 
@@ -78,7 +78,8 @@ export function OutboxPanel({ userId }: { userId: string }) {
   }, [items, sending, run]);
 
   async function retry(item: OutboxItem) {
-    await outboxStore.put({ ...item, status: "waiting", message: undefined });
+    await markForRetry(outboxStore, userId, item.id);
+    // Anche se un'altra scheda l'ha già inviato: il giro aggiorna l'elenco e la pagina.
     await run();
   }
 

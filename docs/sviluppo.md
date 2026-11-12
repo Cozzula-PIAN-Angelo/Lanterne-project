@@ -442,3 +442,17 @@ pagina da solo: l'invio automatico visto al ritorno della rete non vale quindi c
 
 **Stato del Piano 2:** 167 test di integrazione, 114 unit e 47 e2e verdi, con typecheck, lint e build puliti. La
 revisione del blocco finale ha portato ai tentativi automatici della coda offline.
+
+### Rifiniture prima della PR
+
+Due dei problemi minori rinviati dalla revisione finale sono stati corretti, ciascuno partendo da un test che falliva:
+
+- **Indirizzi push con il punto finale:** `https://localhost./x` superava il controllo, perché per il DNS
+  `localhost.` e `localhost` sono lo stesso nome. Ora il punto finale viene tolto prima del confronto.
+- **"Riprova" da una scheda rimasta aperta:** il pannello rimetteva in coda la sua copia dell'elemento, anche se
+  nel frattempo un'altra scheda l'aveva già inviato, e la lanterna partiva due volte. Ora `markForRetry` rilegge
+  l'elemento dalla coda e, se non c'è più, non rimette niente.
+
+Nella suite e2e completa due test sono falliti per cause esterne all'app: il primo test di `auth.spec.ts`, con il
+server dev ancora freddo, e un `EBUSY` di Windows sul file di trace di Playwright. Rilanciati, i due file sono passati
+11 su 11. Gli altri minori restano nel registro del piano.

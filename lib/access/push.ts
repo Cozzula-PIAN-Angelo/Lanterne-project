@@ -19,8 +19,10 @@ const IPV4 = /^\d{1,3}(\.\d{1,3}){3}$/;
  */
 function isAllowedEndpoint(endpoint: string): boolean {
   if (endpoint.length > ENDPOINT_MAX || !URL.canParse(endpoint)) return false;
-  const { protocol, hostname } = new URL(endpoint);
+  const { protocol, hostname: raw } = new URL(endpoint);
   if (protocol !== "https:") return false;
+  // "localhost." e "localhost" sono lo stesso nome per il DNS.
+  const hostname = raw.replace(/\.+$/, "");
   const internal =
     hostname === "localhost" ||
     hostname.endsWith(".localhost") ||

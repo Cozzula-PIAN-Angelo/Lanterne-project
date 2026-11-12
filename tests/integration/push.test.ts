@@ -184,6 +184,8 @@ test.each([
   ["file", "file:///etc/passwd"],
   ["testo", "non un indirizzo"],
   ["localhost", "https://localhost:9000/a"],
+  ["localhost con il punto finale", "https://localhost./a"],
+  [".local con il punto finale", "https://stampante.local./a"],
   ["IPv4", "https://127.0.0.1/a"],
   ["IPv4 scritto come numero", "https://2130706433/a"],
   ["IPv6", "https://[::1]/a"],

@@ -1,5 +1,5 @@
 import { expect, test, vi } from "vitest";
-import { flushOutbox, retryDelayMs, type OutboxItem, type OutboxStore } from "./outbox";
+import { flushOutbox, markForRetry, retryDelayMs, type OutboxItem, type OutboxStore } from "./outbox";
 import type { UploadOutcome } from "./upload-media";
 
 test("i tentativi automatici si diradano fino a due minuti", () => {
@@ -135,4 +135,16 @@ test("legge solo gli elementi dell'utente corrente", async () => {
   expect(upload).toHaveBeenCalledTimes(1);
   expect(result.sent.map((s) => s.id)).toEqual(["mia"]);
   expect([...items.keys()]).toEqual(["altrui"]);
+});
+
+test("riprova rimette in attesa la versione salvata, non la copia del pannello", async () => {
+  const { items, store } = memoryStore([item({ status: "rejected", message: "Troppo lungo" })]);
+  await markForRetry(store, "pia", "a");
+  expect(items.get("a")).toMatchObject({ status: "waiting", message: undefined });
+});
+
+test("riprova non rimette in coda un elemento già inviato da un'altra scheda", async () => {
+  const { items, store } = memoryStore([]);
+  expect(await markForRetry(store, "pia", "a")).toBe(false);
+  expect(items.size).toBe(0);
 });

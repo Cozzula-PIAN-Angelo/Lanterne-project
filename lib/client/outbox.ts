@@ -33,6 +33,17 @@ export function retryDelayMs(attempt: number): number {
   return RETRY_DELAYS_MS[Math.min(attempt, RETRY_DELAYS_MS.length - 1)];
 }
 
+/**
+ * Rilegge l'elemento dalla coda: la copia del pannello può essere vecchia,
+ * e un'altra scheda può averlo già inviato. In quel caso non c'è niente da rimettere.
+ */
+export async function markForRetry(store: OutboxStore, userId: string, id: string): Promise<boolean> {
+  const saved = (await store.list(userId)).find((item) => item.id === id);
+  if (!saved) return false;
+  await store.put({ ...saved, status: "waiting", message: undefined });
+  return true;
+}
+
 async function deliver(store: OutboxStore, item: OutboxItem, upload: typeof uploadMedia): Promise<UploadOutcome> {
   const attempt = (current: OutboxItem) =>
     upload({
