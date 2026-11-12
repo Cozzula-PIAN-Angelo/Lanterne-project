@@ -474,3 +474,16 @@ dorata (tramonto) e il tramonto del sole (crepuscolo) a mezzogiorno locale del g
 istanti non esistono (sole di mezzanotte a Tromsø) o il sole tramonta dopo l'apertura, si torna alle fasi senza
 posizione, e così l'apertura vince sempre. `isLanternLit` accende una propria lanterna un'ora prima della partenza e
 `nextSkyChange` dà il prossimo istante in cui la scena deve ricalcolarsi.
+
+### I dati del lago
+
+`lib/lanterns/lake-layout.ts` contiene le funzioni pure che dicono dove e come disegnare ogni lanterna. La forma
+dipende dal tipo (vocale tondo, foto quadrata, testo ovale, pensiero puntino). La dimensione cresce in modo lineare con
+la lunghezza: il vocale va da 14 a 26 px (da 1 a 600 secondi), il testo da 12 a 22 px di larghezza (da 1 a 1000
+caratteri) ed è alto la metà, sempre arrotondata all'intero. La posizione `lanternSpot` nasce da un hash FNV-1a
+dell'id, a cui si somma un passo aureo legato all'indice per non far sovrapporre le lanterne: stessi id e indice danno
+sempre lo stesso punto, dentro la fascia dell'area (lontano, acqua, vicino) e tra il 6 e il 94 % in orizzontale.
+`lanternRow` mette tutte le lanterne in fila alla stessa altezza, per chi preferisce meno movimento.
+
+`getChannel` restituisce anche `lastArrivalAt`, l'ultima apertura nel fuso di chi guarda (lo stesso valore già usato
+per `partnerLeftNothing`), o `null` se la connessione non è attiva o non ha un orario.

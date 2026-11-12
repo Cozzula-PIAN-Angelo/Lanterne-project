@@ -137,6 +137,8 @@ export async function getChannel(
     partnerLeftNothing: boolean;
     /** Quando partirebbe una lanterna scritta adesso; null se ora non si può inviare. */
     nextDepartureAt: Date | null;
+    /** L'ultima apertura per chi guarda, nel suo fuso; null se la connessione non è attiva o non ha orario. */
+    lastArrivalAt: Date | null;
   }>
 > {
   const { connectionId, userId, now } = input;
@@ -159,6 +161,7 @@ export async function getChannel(
       memories: memories.map((l) => toView(l, now)),
       partnerLeftNothing: false,
       nextDepartureAt: null,
+      lastArrivalAt: null,
     });
   }
 
@@ -182,10 +185,12 @@ export async function getChannel(
 
   let partnerLeftNothing = false;
   let nextDepartureAt: Date | null = null;
+  let lastArrivalAt: Date | null = null;
   if (connection.status === "active" && connection.revealTime) {
     const [me] = await db.select({ timezone: user.timezone }).from(user).where(eq(user.id, userId));
     const myTz = me?.timezone ?? "UTC";
     const last = previousOccurrence(connection.revealTime, myTz, now);
+    lastArrivalAt = last;
     const [{ activatedAt, previousRevealTime, revealTimeChangedAt }] = await db
       .select({
         activatedAt: connections.activatedAt,
@@ -214,6 +219,7 @@ export async function getChannel(
     memories: memories.map((l) => toView(l, now)),
     partnerLeftNothing,
     nextDepartureAt,
+    lastArrivalAt,
   });
 }
 

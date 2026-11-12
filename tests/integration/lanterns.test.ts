@@ -138,6 +138,23 @@ test("nextDepartureAt usa il fuso del partner ed è null se la connessione non �
   }
 });
 
+test("lastArrivalAt è l'ultimo arrivo nel fuso di chi guarda", async () => {
+  const { giulia, marco, conn } = await setup();
+  const g = await getChannel(db, { connectionId: conn.id, userId: giulia.id, now });
+  if (!g.ok) throw new Error(g.error);
+  expect(g.value.lastArrivalAt?.toISOString()).toBe("2026-11-02T20:30:00.000Z");
+  const m = await getChannel(db, { connectionId: conn.id, userId: marco.id, now });
+  if (!m.ok) throw new Error(m.error);
+  expect(m.value.lastArrivalAt?.toISOString()).toBe("2026-11-02T02:30:00.000Z");
+
+  for (const status of ["pending", "ended"] as const) {
+    await db.update(connections).set({ status }).where(eq(connections.id, conn.id));
+    const closed = await getChannel(db, { connectionId: conn.id, userId: giulia.id, now });
+    if (!closed.ok) throw new Error(closed.error);
+    expect(closed.value.lastArrivalAt).toBeNull();
+  }
+});
+
 describe("visibilità", () => {
   test("arriva a revealAt e sparisce a expiresAt", async () => {
     const { giulia, marco, conn } = await setup();
