@@ -12,6 +12,7 @@ export const COLORS = [
 export const RATE_LIMITS = {
   inviteCreate: { limit: 10, windowSec: 3600 },
   inviteAccept: { limit: 20, windowSec: 3600 },
+  upload: { limit: 120, windowSec: 3600 },
 } as const;
 
 export const MAX_CONNECTIONS = 5;

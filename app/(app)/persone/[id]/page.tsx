@@ -27,7 +27,7 @@ export default async function ChannelPage({ params }: PageProps<"/persone/[id]">
   const channel = await getChannel(db, { connectionId, userId: user.id, now });
   if (!channel.ok) notFound();
 
-  const { connection, sent, arrived, memories, partnerLeftNothing } = channel.value;
+  const { connection, sent, arrived, memories, partnerLeftNothing, nextDepartureAt } = channel.value;
   const { partner, status } = connection;
   const viewerTz = user.timezone ?? "UTC";
   const nextDeparture = sent
@@ -53,7 +53,13 @@ export default async function ChannelPage({ params }: PageProps<"/persone/[id]">
         <Section title="Arrivate">
           <ul className="space-y-3">
             {arrived.map((lantern) => (
-              <ArrivedLantern key={lantern.id} lantern={lantern} connectionId={connectionId} viewerTz={viewerTz} />
+              <ArrivedLantern
+                key={lantern.id}
+                lantern={lantern}
+                connectionId={connectionId}
+                viewerTz={viewerTz}
+                senderName={partner.name}
+              />
             ))}
           </ul>
         </Section>
@@ -92,14 +98,20 @@ export default async function ChannelPage({ params }: PageProps<"/persone/[id]">
         </Section>
       )}
 
-      {status === "active" && <LanternComposer connectionId={connectionId} />}
+      {status === "active" && nextDepartureAt && (
+        <LanternComposer
+          userId={user.id}
+          connectionId={connectionId}
+          expectedRevealAt={nextDepartureAt.toISOString()}
+        />
+      )}
       {status === "pending" && <p>{errorMessage("connection_not_active")}</p>}
 
       {memories.length > 0 && (
         <Section title="Ricordi">
           <ul className="space-y-3">
             {memories.map((lantern) => (
-              <MemoryLantern key={lantern.id} lantern={lantern} viewerTz={viewerTz} />
+              <MemoryLantern key={lantern.id} lantern={lantern} viewerTz={viewerTz} senderName={partner.name} />
             ))}
           </ul>
         </Section>

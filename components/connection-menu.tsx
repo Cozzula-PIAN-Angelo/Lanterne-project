@@ -158,7 +158,7 @@ export function ConnectionMenu(props: Props) {
       )}
       {panel === "end" && (
         <Confirm
-          text="Le lanterne non ancora arrivate verranno eliminate. I ricordi restano."
+          text="Le lanterne non conservate verranno eliminate, anche quelle già arrivate. I ricordi restano."
           confirmLabel="Sì, chiudi"
           action={endConnectionAction}
           connectionId={connectionId}

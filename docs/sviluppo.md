@@ -249,5 +249,216 @@ che riproduce il problema:
 
 ---
 
-**Stato:** 83 test di integrazione, 78 unit e 13 e2e verdi. Prossimo passo: PR `piano-1` → `main`,
-poi il Piano 2.
+**Stato del Piano 1:** 83 test di integrazione, 78 unit e 13 e2e verdi, unito in `main`.
+
+## Piano 2 — Media, worker e PWA
+
+### Task 1 — Storage S3
+- **`createStorage`** parla con qualunque storage compatibile S3: in locale SeaweedFS, sulla porta 9000.
+  MinIO era la prima scelta, ma la versione attuale richiede una licenza anche in locale.
+- **Il limite sta nella firma:** l'URL di upload include dimensione e tipo, quindi un file diverso da
+  quello dichiarato viene rifiutato dallo storage. Non si usa il POST firmato perché Cloudflare R2,
+  una possibile destinazione futura, non lo supporta.
+- **Due client S3:** l'host fa parte della firma, quindi gli URL per il browser nascono con
+  `S3_PUBLIC_ENDPOINT`, mentre il server può raggiungere lo storage da un altro indirizzo.
+- **`pnpm run setup` aggiorna anche un `.env` esistente:** aggiunge le chiavi nuove, genera la coppia
+  VAPID e crea i tre bucket, senza toccare i valori già impostati.
+
+### Task 2 — Lanterne multimediali in `lib/access`
+- **Tre passaggi:** `createMediaLantern` crea la riga `uploading` e firma l'upload, il browser carica il
+  file direttamente sullo storage, `confirmMediaLantern` controlla il file e porta la riga a `ready`.
+- **Il file viene controllato davvero:** se dimensione o tipo non corrispondono a quanto dichiarato,
+  la lanterna viene eliminata. Il destinatario vede solo righe `ready`, mai un upload a metà.
+- **Tetto dell'audio:** 60 minuti al giorno per connessione e mittente, nel giorno locale del mittente.
+  Gli upload rimasti aperti contano per i 5 minuti in cui l'URL è valido, poi non consumano più.
+- **Un trigger per i file:** ogni riga eliminata con un `media_key` finisce in `storage_deletions`,
+  anche quando la cancellazione arriva a cascata da un utente o da una connessione. Nessun percorso
+  può dimenticare un file, e la tabella è il lavoro che il worker dovrà svolgere.
+- **La chiave del file resta sul server:** `LanternView` espone tipo e durata, mentre l'URL firmato si
+  chiede con `getMediaUrl`, che applica le stesse regole di visibilità delle lanterne.
+
+### Task 3 — Registrazione e ascolto dei vocali
+- **Registrare è il gesto principale del canale:** `AudioRecorder` sceglie il formato più compatibile
+  disponibile, si ferma da solo a 10 minuti e libera subito il microfono.
+- **`uploadMedia`** distingue i problemi di rete dai rifiuti del server, una base che servirà alla coda
+  offline. Per ora un errore di rete viene solo segnalato.
+- **L'URL si chiede al tocco:** `MediaPlayer` chiama il server solo quando la persona preme "Ascolta".
+  Se il collegamento scade dopo 5 minuti, un nuovo tocco ne chiede un altro.
+- **Accessibilità:** il pulsante si legge come "Ascolta: Vocale di Anna, 3 minuti, delle 9:14".
+- **Senza microfono l'app funziona lo stesso:** con il permesso negato o un browser senza
+  `MediaRecorder` resta tutto il resto, con una spiegazione calma.
+- **Nei test:** Chromium usa un microfono finto, e il vocale passa davvero dallo storage.
+
+### Task 4 — Foto
+- **La foto si prepara sul telefono:** `compressPhoto` la ridisegna su un canvas, al massimo a 2048 px.
+  Questo toglie anche i metadati EXIF, compresa la posizione GPS. Il test usa una foto con EXIF vero e
+  verifica i byte che arrivano al destinatario.
+- **Orientamento e trasparenza:** il ridisegno rispetta l'orientamento di scatto e riempie di bianco le
+  parti trasparenti, che in JPEG diventerebbero nere.
+- **Formati non leggibili:** se il browser non riesce ad aprire il file, la persona riceve un messaggio
+  calmo e può sceglierne un altro.
+
+### Task 5 — Prova reale su Android
+- **Esito:** vocali e foto funzionano tra un telefono Android e Chrome desktop, nei due sensi. iPhone resta
+  non verificato per mancanza del dispositivo, come dice `docs/notes/audio-format.md`.
+- **Come si collega il telefono:** il debug wireless e `adb reverse` espongono `localhost` sul telefono.
+  Chrome lo considera un contesto sicuro, quindi il microfono funziona senza HTTPS. Il cavo USB
+  richiederebbe un driver da installare come amministratore.
+
+### Revisione del blocco A
+La revisione indipendente non ha trovato problemi critici. Le correzioni riguardano quasi tutte `<Activity>`,
+che nasconde la pagina lasciandola viva e che i test non avevano mai messo alla prova.
+- **Registratore:** lasciando la pagina mentre si registra, al ritorno restava "Ferma e invia" con un pulsante
+  che non faceva nulla. Ora torna pronto e dice che la registrazione si è interrotta.
+- **Microfono:** se il permesso arrivava dopo aver lasciato la pagina, il microfono si accendeva senza un modo
+  per spegnerlo. Ora si rilascia subito, anche quando `MediaRecorder` non riesce a partire.
+- **Player:** `display: none` non ferma l'audio, quindi il vocale continuava a suonare in un'altra pagina. Ora
+  si mette in pausa quando la pagina viene nascosta.
+- **Test più stretti:** dimensione più grande, più piccola e tipo diverso sono casi separati, perché nel test
+  unico togliere metà del controllo non faceva fallire nulla. Si aggiunge il blocco durante un upload.
+- **Piano aggiornato:** la coda di cancellazione del Task 6 aspetterà un'ora, perché un PUT già iniziato può
+  finire dopo la cancellazione della riga. Il Task 11 ripeterà solo la conferma se il file è già caricato.
+
+### Task 6 — Pulizia e cancellazione dei file
+- **Tre funzioni in `lib/access/cleanup.ts`:** `cleanupExpired` toglie le lanterne scadute e non conservate,
+  `cleanupAbandoned` quelle rimaste in `uploading` da più di un'ora, `drainStorageDeletions` toglie i file.
+  Per ora le chiama solo il test: le pianificherà il worker del Task 7.
+- **Le prime due non toccano lo storage:** cancellano le righe e ci pensa il trigger ad accodare i file.
+  Così esiste un solo percorso di cancellazione, comune a chiusure, blocchi ed eliminazione dell'account.
+- **Un'ora di attesa in coda:** un upload già iniziato può finire dopo la cancellazione della riga. Togliendo
+  il file subito, l'upload lo ricreerebbe senza che nessuno lo sappia più. Nel frattempo il file è
+  irraggiungibile, perché per firmare un link di lettura serve la riga.
+- **Se lo storage non risponde:** la riga della coda sparisce solo dopo la rimozione riuscita, e un fallimento
+  non ferma le altre chiavi.
+- **La scadenza non dipende dalla pulizia:** una lanterna scaduta è già invisibile anche se il worker è fermo.
+
+### Task 7 — Worker
+- **Un processo a parte:** `worker/index.ts` è un secondo processo Node accanto all'app. `pnpm dev` li avvia
+  insieme con `concurrently`, mentre gli e2e usano `pnpm dev:web`: senza worker, le pulizie non cambiano i dati
+  a metà di un test.
+- **Job in `worker/jobs.ts`:** ogni 15 minuti `cleanup-expired` e `cleanup-abandoned`, ogni minuto
+  `drain-storage`. Con pg-boss 12 ogni coda va creata prima di `schedule` e `work`.
+- **pg-boss sta su Postgres:** niente Redis né altri servizi. Lo schedule vive in tabelle proprie, in uno
+  schema dedicato `pgboss`.
+- **I log non contengono dati:** se un job fallisce, si scrive solo il suo nome. pg-boss salva l'errore nelle
+  sue tabelle, quindi anche a lui arriva un errore nuovo, senza la causa originale.
+- **Prova reale:** `pnpm worker` sul database di test ha cancellato una lanterna scaduta. Scaduto il margine,
+  il cron ha tolto da solo il file dallo storage e la riga dalla coda.
+
+### Task 8 — Eliminazione dell'account e testo sulla chiusura
+- **Una sola riga da cancellare:** `deleteAccount` elimina `user`, e le cascate del Piano 1 tolgono sessioni,
+  connessioni, inviti e blocchi. Il trigger accoda i file delle lanterne, anche quelle conservate dall'altra
+  persona: il testo lo dice prima di confermare.
+- **Conferma scritta:** bisogna scrivere ELIMINA. Uno spazio dalla tastiera del telefono non conta. Una parola
+  sbagliata riceve un messaggio specifico, non quello generico.
+- **Uscita con ricarica vera:** come per "Esci", perché `<Activity>` terrebbe in memoria le pagine già visitate.
+- **Testo sulla chiusura:** dice ora che spariscono tutte le lanterne non conservate, anche quelle già arrivate.
+  È quello che il codice faceva già: il vecchio testo, e la spec, promettevano meno di quanto succede.
+
+### Revisione del blocco B
+La revisione indipendente non ha trovato problemi critici e conferma che i percorsi di cancellazione tengono.
+- **Storage guasto:** il job `drain-storage` riusciva anche con tutti i file rimasti al loro posto, senza scrivere
+  nulla. Ora il log dice quanti file non sono stati rimossi, mai quali.
+- **Test del worker:** passavano anche con il worker rotto, perché le pianificazioni della corsa precedente
+  restavano nel database e nessuno eseguiva davvero i job. Ora lo schema si azzera a ogni avvio, ogni job gira
+  su dati veri e il test legge quel che pg-boss conserva. Ogni controllo è provato rompendo il codice apposta.
+- **Connessione sparita:** chi aveva la pagina aperta quando l'altra persona elimina l'account leggeva "riproviamo
+  tra poco", all'infinito. Ora legge "Questa connessione non c'è più", e il testo scritto resta nel campo.
+- **Testo nei log:** gli errori di Drizzle riportano i parametri della query, quindi un insert fallito poteva
+  scrivere il testo di una lanterna nei log del server, contro quanto promette la spec. Ora l'errore esce senza.
+
+### Task 9 — App installabile e pagina offline
+- **Manifest e icone:** `app/manifest.ts` descrive l'app; i PNG, compresa la variante maskable per Android, nascono
+  da `public/icon.svg` con `scripts/icons.ts` e si committano.
+- **Service worker minimo:** `public/sw.js` guarda solo le navigazioni: prima la rete, e `/offline` se la rete manca.
+  L'unica cosa in cache è la pagina offline, perché le pagine dell'app contengono dati personali. Il test lo verifica
+  elencando tutta la cache, ed è stato provato con un service worker modificato apposta per salvare le navigazioni.
+- **Pagina offline autosufficiente:** senza rete non arrivano CSS e font, quindi gli stili sono in linea. Il link
+  "Riprova" è un `<a>` normale, perché nemmeno il JavaScript è disponibile.
+- **Test isolati:** il service worker è attivo solo in `e2e/pwa.spec.ts`; gli altri test lo bloccano.
+
+### Task 10 — Notifiche push
+- **Prima si marca, poi si invia:** `notifyArrivals` segna le lanterne arrivate con un solo `UPDATE ... RETURNING`.
+  Due esecuzioni simultanee non possono prendere la stessa riga, quindi niente doppioni. Il prezzo è che, se il worker
+  cade tra i due passi, quell'avviso si perde; la lanterna resta comunque visibile, perché la visibilità non dipende dal worker.
+- **Una notifica per gruppo:** una per destinatario e connessione, su ogni suo dispositivo. Contiene solo il nome del
+  mittente, mai il testo. Una connessione chiusa non produce avvisi, anche se una lanterna conservata è ancora lì.
+- **Endpoint scelto dal client:** il worker fa una richiesta a quell'indirizzo, quindi si accetta solo HTTPS verso un
+  nome di dominio. `localhost` e gli IP sono rifiutati, comprese scritture come `https://2130706433`.
+- **Esiti:** 404 e 410 tolgono la sottoscrizione; ogni altro errore la tiene e finisce nel log come numero, senza dati.
+- **Telefono condiviso:** uscire o eliminare l'account spegne anche l'iscrizione del browser, altrimenti chi entra dopo
+  riceverebbe avvisi con i nomi delle persone di un altro.
+- **Permesso solo al tocco:** l'interruttore gestisce anche browser non supportato, permesso negato e iPhone senza app
+  installata, con la guida "Aggiungi alla schermata Home".
+- **Limite dei test:** il Chromium headless non mostra notifiche e non raggiunge un servizio push. Gli e2e simulano quella
+  parte del browser; la consegna reale si verifica sul telefono nel Task 12.
+
+### Task 11 — Coda offline per vocali e foto
+- **Un solo percorso:** registratore e selettore foto non inviano più direttamente. Scrivono il file in IndexedDB e
+  avvisano `OutboxPanel`, che lo invia. Da quel momento un vocale sopravvive a rete assente, pagina chiusa o crash.
+  Testi e pensieri restano fuori dalla coda: si riscrivono in un attimo.
+- **Niente doppioni se si perde una risposta:** dopo il caricamento il biglietto (`lanternId`) si salva sull'elemento,
+  prima di confermare. Se la risposta alla conferma si perde, il giro successivo ripete solo la conferma, che è
+  idempotente. Se intanto la pulizia ha tolto un caricamento mai confermato, l'invio riparte dal file.
+- **Più schede:** due schede aperte al ritorno della rete inviavano lo stesso vocale due volte, come ha dimostrato
+  un e2e. Ora il giro passa dalla Web Locks API: la seconda scheda aspetta e rilegge una coda già svuotata. Anche la
+  scheda che non ha inviato aggiorna la pagina, quando vede la coda accorciarsi.
+- **Tentativi automatici:** con la rete accesa nessun evento dice che il server è tornato raggiungibile, quindi un invio
+  fallito si riprova dopo 5 secondi, 30 secondi e poi ogni 2 minuti, e subito quando si torna sull'app. Il ritmo è
+  limitato perché ogni tentativo può riservare un vocale intero per 5 minuti sul tetto giornaliero.
+- **Errori distinti:** la rete assente ferma il giro e si riprova da soli; un rifiuto, come una connessione chiusa,
+  resta visibile con il suo messaggio e con "Riprova" e "Scarta", senza tentativi infiniti.
+- **PUT bloccato:** un caricamento senza risposta scade dopo 10 minuti e diventa un errore di rete.
+- **Partenza in ritardo:** `getChannel` espone `nextDepartureAt`, nel fuso di chi riceve. Se la lanterna parte dopo
+  quell'orario, l'app avvisa che partirà la sera dopo.
+- **Dispositivo condiviso:** uscendo, l'app dice quante lanterne non sono partite e chiede conferma prima di
+  cancellarle. Anche l'eliminazione dell'account svuota la coda. Gli elementi sono legati all'utente che li ha creati.
+- **Senza IndexedDB:** il file resta in memoria e il pannello chiede di non chiudere la pagina.
+- **Un test instabile, risolto:** in `e2e/offline.spec.ts` la navigazione verso il canale a volte restava ferma su
+  "Un attimo…" e il test scadeva. Il trace di Playwright ha mostrato la causa: l'URL cambia quando la risposta RSC è
+  ancora in streaming, e il test spegneva la rete proprio in quel momento. Spegnendola apposta al cambio di URL, il
+  blocco si è ripresentato in 5 tentativi su 8, e in tutti i casi la pagina si è completata da sola al ritorno della
+  rete: per chi usa l'app il caricamento dura quanto l'assenza di rete. Ora il test aspetta il tasto "Registra" prima
+  di andare offline. Prima della correzione falliva 5 suite complete su 8, dopo ne sono passate 6 su 6.
+
+### Task 12 — Prova finale su Android
+
+Gli e2e simulano le notifiche e la rete: alcune cose si vedono solo su un telefono vero. La prova è stata fatta su un
+Nothing A024 collegato al PC con il debug wireless e `adb reverse`, con il worker acceso.
+
+| Controllo | Esito |
+|---|---|
+| Installazione da Chrome | Icona nella schermata Home, l'app si apre a schermo intero |
+| Notifica all'arrivo di una lanterna | Inviata dal worker 54 secondi dopo l'orario |
+| Tocco sulla notifica | Si apre il canale di chi ha inviato la lanterna |
+| Modalità aereo durante un vocale | "In attesa di rete", poi invio al ritorno senza toccare l'app |
+| Navigazione in modalità aereo | Compare la pagina offline a tutto schermo |
+
+Il pannello Viaggio nel tempo non vale per il worker, che segue l'ora reale: per non aspettare la sera, durante la prova
+l'orario di arrivo di una lanterna è stato anticipato direttamente nel database di sviluppo. Il cavo USB resta escluso
+su questo PC, perché Windows assegna al telefono il driver generico WinUSB e sostituirlo richiede i permessi di
+amministratore. iPhone resta non verificato. La prova è stata fatta con `pnpm dev`, che in alcuni casi ricarica la
+pagina da solo: l'invio automatico visto al ritorno della rete non vale quindi come prova del comportamento in produzione.
+
+**Stato del Piano 2:** 167 test di integrazione, 114 unit e 47 e2e verdi, con typecheck, lint e build puliti. La
+revisione del blocco finale ha portato ai tentativi automatici della coda offline.
+
+### Rifiniture prima della PR
+
+Due dei problemi minori rinviati dalla revisione finale sono stati corretti, ciascuno partendo da un test che falliva:
+
+- **Indirizzi push con il punto finale:** `https://localhost./x` superava il controllo, perché per il DNS
+  `localhost.` e `localhost` sono lo stesso nome. Ora il punto finale viene tolto prima del confronto.
+- **"Riprova" da una scheda rimasta aperta:** il pannello rimetteva in coda la sua copia dell'elemento, anche se
+  nel frattempo un'altra scheda l'aveva già inviato, e la lanterna partiva due volte. Ora `markForRetry` rilegge
+  l'elemento dalla coda e, se non c'è più, non rimette niente.
+
+Nella suite e2e completa due test sono falliti per cause esterne all'app: il primo test di `auth.spec.ts`, con il
+server dev ancora freddo, e un `EBUSY` di Windows sul file di trace di Playwright. Rilanciati, i due file sono passati
+11 su 11. Gli altri minori restano nel registro del piano.
+
+**Modalità aereo sulla build di produzione.** La prova del Task 12 era stata fatta con `pnpm dev`, ed è stata
+ripetuta con `pnpm build` e `pnpm start` sullo stesso telefono. Il vocale registrato in modalità aereo è partito
+26 secondi dopo il ritorno della rete senza toccare l'app, e arriverà all'orario previsto. Il ritardo corrisponde ai
+tentativi automatici della coda: il primo è partito probabilmente quando il Wi-Fi era tornato ma `adb reverse` non era
+ancora attivo. Anche in produzione, quindi, l'invio al ritorno della rete parte da solo.

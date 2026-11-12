@@ -1,5 +1,5 @@
 import { and, asc, eq, gt, isNotNull, lte } from "drizzle-orm";
-import type { Db } from "@/lib/db/client";
+import type { Db, Tx } from "@/lib/db/client";
 import { connections, lanterns, user } from "@/lib/db/schema";
 import { REACTIONS, TEXT_MAX, THOUGHTS } from "@/lib/lanterns/constants";
 import { computeExpiresAt, computeRevealAt } from "@/lib/time/lantern-times";
@@ -22,6 +22,9 @@ export type LanternView = {
   savedAt: Date | null;
   reaction: string | null;
   createdAt: Date;
+  /** La chiave del file non esce mai da qui: l'URL si chiede con getMediaUrl. */
+  mediaMime: string | null;
+  durationSec: number | null;
 };
 
 function toView(l: LanternRow, now: Date): LanternView {
@@ -37,7 +40,28 @@ function toView(l: LanternRow, now: Date): LanternView {
     savedAt: l.savedAt,
     reaction: l.reaction,
     createdAt: l.createdAt,
+    mediaMime: l.mediaMime,
+    durationSec: l.durationSec,
   };
+}
+
+/**
+ * La connessione su cui il mittente può inviare, con le due persone.
+ * FOR SHARE: una chiusura o un blocco in corso (FOR UPDATE) fa aspettare la creazione.
+ */
+export async function openConnectionForSender(tx: Tx, connectionId: string, senderId: string) {
+  const [c] = await tx
+    .select()
+    .from(connections)
+    .where(eq(connections.id, connectionId))
+    .for("share");
+  if (!c || (c.userAId !== senderId && c.userBId !== senderId)) return fail("not_found");
+  if (c.status !== "active" || !c.revealTime) return fail("connection_not_active");
+
+  const recipientId = c.userAId === senderId ? c.userBId : c.userAId;
+  const [sender] = await tx.select().from(user).where(eq(user.id, senderId));
+  const [recipient] = await tx.select().from(user).where(eq(user.id, recipientId));
+  return ok({ connection: { ...c, revealTime: c.revealTime }, sender, recipient });
 }
 
 async function createLantern(
@@ -45,19 +69,10 @@ async function createLantern(
   input: { connectionId: string; senderId: string; type: "text" | "thought"; text: string; now: Date },
 ): Promise<AccessResult<LanternView>> {
   const { connectionId, senderId, type, text, now } = input;
-  // FOR SHARE: una chiusura o un blocco in corso (FOR UPDATE) fa aspettare la creazione.
-  return db.transaction(async (tx) => {
-    const [c] = await tx
-      .select()
-      .from(connections)
-      .where(eq(connections.id, connectionId))
-      .for("share");
-    if (!c || (c.userAId !== senderId && c.userBId !== senderId)) return fail("not_found");
-    if (c.status !== "active" || !c.revealTime) return fail("connection_not_active");
-
-    const recipientId = c.userAId === senderId ? c.userBId : c.userAId;
-    const [sender] = await tx.select().from(user).where(eq(user.id, senderId));
-    const [recipient] = await tx.select().from(user).where(eq(user.id, recipientId));
+  const inserted = db.transaction(async (tx) => {
+    const opened = await openConnectionForSender(tx, connectionId, senderId);
+    if (!opened.ok) return opened;
+    const { connection: c, sender, recipient } = opened.value;
     const recipientTz = recipient.timezone ?? "UTC";
 
     const revealAt = computeRevealAt(
@@ -74,7 +89,7 @@ async function createLantern(
       .values({
         connectionId,
         senderId,
-        recipientId,
+        recipientId: recipient.id,
         type,
         text,
         status: "ready",
@@ -85,6 +100,11 @@ async function createLantern(
       })
       .returning();
     return ok(toView(row, now));
+  });
+  // Gli errori di Drizzle riportano i parametri della query, cioè il testo della lanterna,
+  // e un errore non gestito finisce nei log del server.
+  return inserted.catch(() => {
+    throw new Error("Invio della lanterna non riuscito");
   });
 }
 
@@ -115,6 +135,8 @@ export async function getChannel(
     arrived: LanternView[];
     memories: LanternView[];
     partnerLeftNothing: boolean;
+    /** Quando partirebbe una lanterna scritta adesso; null se ora non si può inviare. */
+    nextDepartureAt: Date | null;
   }>
 > {
   const { connectionId, userId, now } = input;
@@ -136,6 +158,7 @@ export async function getChannel(
       arrived: [],
       memories: memories.map((l) => toView(l, now)),
       partnerLeftNothing: false,
+      nextDepartureAt: null,
     });
   }
 
@@ -158,12 +181,17 @@ export async function getChannel(
     .orderBy(asc(lanterns.revealAt));
 
   let partnerLeftNothing = false;
+  let nextDepartureAt: Date | null = null;
   if (connection.status === "active" && connection.revealTime) {
     const [me] = await db.select({ timezone: user.timezone }).from(user).where(eq(user.id, userId));
     const myTz = me?.timezone ?? "UTC";
     const last = previousOccurrence(connection.revealTime, myTz, now);
-    const [{ activatedAt }] = await db
-      .select({ activatedAt: connections.activatedAt })
+    const [{ activatedAt, previousRevealTime, revealTimeChangedAt }] = await db
+      .select({
+        activatedAt: connections.activatedAt,
+        previousRevealTime: connections.previousRevealTime,
+        revealTimeChangedAt: connections.revealTimeChangedAt,
+      })
       .from(connections)
       .where(eq(connections.id, connectionId));
     // Se la connessione è nata dopo l'apertura di stasera, il partner non ha avuto occasione.
@@ -171,6 +199,12 @@ export async function getChannel(
     // Basta una lanterna leggibile, anche partita a un altro orario (cambio di fuso o d'orario).
     partnerLeftNothing =
       hadChance && now.getTime() < computeExpiresAt(last, myTz).getTime() && arrived.length === 0;
+    // Nel fuso di chi riceve, come quando il server crea la lanterna.
+    nextDepartureAt = computeRevealAt(
+      { revealTime: connection.revealTime, previousRevealTime, revealTimeChangedAt },
+      connection.partner.timezone,
+      now,
+    );
   }
 
   return ok({
@@ -179,6 +213,7 @@ export async function getChannel(
     arrived: arrived.map((l) => toView(l, now)),
     memories: memories.map((l) => toView(l, now)),
     partnerLeftNothing,
+    nextDepartureAt,
   });
 }
 
@@ -197,7 +232,7 @@ export async function deleteLantern(
 }
 
 /** Lanterna del destinatario visibile ora: arrivata e non scaduta, oppure salvata. */
-async function findVisibleForRecipient(db: Db, lanternId: string, userId: string, now: Date) {
+export async function findVisibleForRecipient(db: Db, lanternId: string, userId: string, now: Date) {
   const [l] = await db
     .select()
     .from(lanterns)

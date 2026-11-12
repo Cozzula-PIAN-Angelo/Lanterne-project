@@ -17,5 +17,15 @@ services:
       - "1025:1025"
       - "8025:8025"
 
+  s3:
+    image: chrislusf/seaweedfs:4.52
+    command: mini -dir=/data -s3.port=9000 -s3.config=/etc/seaweedfs/s3.json -master.telemetry=false -admin.ui=false
+    ports:
+      - "9000:9000"
+    volumes:
+      - s3data:/data
+      - ./docker/seaweedfs-s3.json:/etc/seaweedfs/s3.json:ro
+
 volumes:
   pgdata:
+  s3data:

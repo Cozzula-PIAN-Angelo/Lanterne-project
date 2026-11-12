@@ -2,7 +2,9 @@ import Link from "next/link";
 import { unblockAction } from "@/app/(app)/actions/connections";
 import { ActionButton } from "@/components/action-button";
 import { AllowSavingToggle } from "@/components/allow-saving-toggle";
+import { DeleteAccountForm } from "@/components/delete-account-form";
 import { ProfileForm } from "@/components/profile/profile-form";
+import { PushToggle } from "@/components/push-toggle";
 import { SignOutButton } from "@/components/sign-out-button";
 import { listBlocked } from "@/lib/access/blocks";
 import { requireOnboardedUser } from "@/lib/auth/session";
@@ -35,6 +37,8 @@ export default async function SettingsPage({ searchParams }: PageProps<"/imposta
 
       <AllowSavingToggle defaultChecked={user.allowSaving ?? true} />
 
+      <PushToggle />
+
       <section aria-label="Persone bloccate" className="space-y-3">
         <h2 className="text-lg font-medium">Persone bloccate</h2>
         {blocked.length === 0 && <p className="text-sm text-muted-foreground">Nessuna.</p>}
@@ -50,7 +54,9 @@ export default async function SettingsPage({ searchParams }: PageProps<"/imposta
         </ul>
       </section>
 
-      <SignOutButton />
+      <SignOutButton userId={user.id} />
+
+      <DeleteAccountForm userId={user.id} />
     </div>
   );
 }

@@ -51,3 +51,6 @@ certificates/
 /test-results/
 /playwright-report/
 /blob-report/
+
+# storage locale
+.s3-data/

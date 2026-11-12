@@ -3,6 +3,7 @@ import { format } from "date-fns";
 import { it } from "date-fns/locale";
 import { Suspense } from "react";
 import { DevTimePanel } from "@/components/dev-time-panel";
+import { OutboxPanel } from "@/components/outbox-panel";
 import { TimezoneBanner } from "@/components/timezone-banner";
 import { isOnboarded } from "@/lib/access/profile";
 import { requireUser } from "@/lib/auth/session";
@@ -28,7 +29,12 @@ async function SignedIn({ children }: { children: React.ReactNode }) {
   const timezone = user.timezone ?? "UTC";
   return (
     <>
-      {isOnboarded({ color: user.color ?? null }) && <TimezoneBanner userTz={timezone} />}
+      {isOnboarded({ color: user.color ?? null }) && (
+        <>
+          <TimezoneBanner userTz={timezone} />
+          <OutboxPanel userId={user.id} />
+        </>
+      )}
       {children}
       {process.env.NODE_ENV === "development" && <DevTime timezone={timezone} />}
     </>

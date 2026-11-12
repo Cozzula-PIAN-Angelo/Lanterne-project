@@ -16,10 +16,21 @@ const MESSAGES: Partial<Record<AccessErrorCode, string>> = {
   not_savable: "Chi l'ha inviata ha scelto di non farla conservare.",
   rate_limited: "Piano piano: riprova tra qualche minuto.",
   invalid_reveal_time: "Scegli un orario tra le 17:00 e mezzanotte.",
+  audio_cap_reached: "Per oggi il lago è pieno.",
+  upload_missing: "Il file non è arrivato, riproviamo.",
+  upload_invalid: "Questo file non si può inviare.",
 };
 
 const FALLBACK = "Qualcosa non è andato, riproviamo tra poco.";
 
 export function errorMessage(code: AccessErrorCode): string {
   return MESSAGES[code] ?? FALLBACK;
+}
+
+/**
+ * Per chi sta inviando, `not_found` vuol dire che la connessione non esiste più, per esempio
+ * perché l'altra persona ha eliminato l'account: riprovare non servirebbe.
+ */
+export function sendErrorMessage(code: AccessErrorCode): string {
+  return code === "not_found" ? "Questa connessione non c'è più." : errorMessage(code);
 }

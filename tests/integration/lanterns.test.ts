@@ -52,6 +52,26 @@ describe("creazione", () => {
     }
   });
 
+  test("un invio fallito non porta il testo della lanterna nell'errore, che finirebbe nei log", async () => {
+    const giulia = await makeUser(db, { name: "Giulia" });
+    const marco = await makeUser(db, { name: "Marco" });
+    const conn = await makeConnection(db, giulia, marco);
+    // Postgres rifiuta il carattere NUL: è un vero errore di insert, con il testo tra i parametri.
+    const failure: Error = await createTextLantern(db, {
+      connectionId: conn.id,
+      senderId: giulia.id,
+      text: "segreto privato\u0000",
+      now,
+    }).then(
+      () => {
+        throw new Error("L'insert doveva fallire");
+      },
+      (error: Error) => error,
+    );
+    expect(failure.message).toBe("Invio della lanterna non riuscito");
+    expect(failure.cause).toBeUndefined();
+  });
+
   test("non membro → not_found", async () => {
     const { conn } = await setup();
     const other = await makeUser(db);
@@ -96,6 +116,26 @@ describe("creazione", () => {
       await createThoughtLantern(db, { connectionId: conn.id, senderId: giulia.id, thoughtId: "inventato", now }),
     ).toEqual({ ok: false, error: "invalid_input" });
   });
+});
+
+test("nextDepartureAt usa il fuso del partner ed è null se la connessione non è attiva", async () => {
+  const { giulia, marco, conn } = await setup();
+  // Giulia scrive a Marco, a New York: le 21:30 sono le sue.
+  const res = await getChannel(db, { connectionId: conn.id, userId: giulia.id, now });
+  if (!res.ok) throw new Error(res.error);
+  expect(res.value.nextDepartureAt?.toISOString()).toBe(REVEAL);
+
+  // Per Marco il partner è Giulia, a Roma: le 21:30 di domani.
+  const other = await getChannel(db, { connectionId: conn.id, userId: marco.id, now });
+  if (!other.ok) throw new Error(other.error);
+  expect(other.value.nextDepartureAt?.toISOString()).toBe("2026-11-03T20:30:00.000Z");
+
+  for (const status of ["pending", "ended"] as const) {
+    await db.update(connections).set({ status }).where(eq(connections.id, conn.id));
+    const closed = await getChannel(db, { connectionId: conn.id, userId: giulia.id, now });
+    if (!closed.ok) throw new Error(closed.error);
+    expect(closed.value.nextDepartureAt).toBeNull();
+  }
 });
 
 describe("visibilità", () => {

@@ -14,7 +14,10 @@ export type AccessErrorCode =
   | "connection_not_active"
   | "too_late"
   | "not_savable"
-  | "rate_limited";
+  | "rate_limited"
+  | "audio_cap_reached"
+  | "upload_missing"
+  | "upload_invalid";
 
 export type AccessResult<T> = { ok: true; value: T } | { ok: false; error: AccessErrorCode };
 
