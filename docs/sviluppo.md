@@ -462,3 +462,15 @@ ripetuta con `pnpm build` e `pnpm start` sullo stesso telefono. Il vocale regist
 26 secondi dopo il ritorno della rete senza toccare l'app, e arriverà all'orario previsto. Il ritardo corrisponde ai
 tentativi automatici della coda: il primo è partito probabilmente quando il Wi-Fi era tornato ma `adb reverse` non era
 ancora attivo. Anche in produzione, quindi, l'invio al ritorno della rete parte da solo.
+
+## Piano 3
+
+### Le fasi del cielo
+
+`lib/time/sky.ts` decide il colore del lago a partire dall'ora e basta. `skyPhase` restituisce `day`, `sunset`, `dusk`
+o `night`: è notte dall'apertura fino alle 06:00 locali, poi si guarda l'apertura successiva. Senza una posizione il
+tramonto comincia un'ora prima dell'apertura e non c'è crepuscolo. Con una posizione, `suncalc` dà l'inizio dell'ora
+dorata (tramonto) e il tramonto del sole (crepuscolo) a mezzogiorno locale del giorno dell'apertura. Se quei due
+istanti non esistono (sole di mezzanotte a Tromsø) o il sole tramonta dopo l'apertura, si torna alle fasi senza
+posizione, e così l'apertura vince sempre. `isLanternLit` accende una propria lanterna un'ora prima della partenza e
+`nextSkyChange` dà il prossimo istante in cui la scena deve ricalcolarsi.
