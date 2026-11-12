@@ -456,3 +456,9 @@ Due dei problemi minori rinviati dalla revisione finale sono stati corretti, cia
 Nella suite e2e completa due test sono falliti per cause esterne all'app: il primo test di `auth.spec.ts`, con il
 server dev ancora freddo, e un `EBUSY` di Windows sul file di trace di Playwright. Rilanciati, i due file sono passati
 11 su 11. Gli altri minori restano nel registro del piano.
+
+**Modalità aereo sulla build di produzione.** La prova del Task 12 era stata fatta con `pnpm dev`, ed è stata
+ripetuta con `pnpm build` e `pnpm start` sullo stesso telefono. Il vocale registrato in modalità aereo è partito
+26 secondi dopo il ritorno della rete senza toccare l'app, e arriverà all'orario previsto. Il ritardo corrisponde ai
+tentativi automatici della coda: il primo è partito probabilmente quando il Wi-Fi era tornato ma `adb reverse` non era
+ancora attivo. Anche in produzione, quindi, l'invio al ritorno della rete parte da solo.
