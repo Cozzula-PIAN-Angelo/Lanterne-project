@@ -119,6 +119,8 @@ export function MemoryLantern({
   return (
     <li className="space-y-2 rounded-xl border p-4">
       <Content lantern={lantern} viewerTz={viewerTz} player={receivedPlayer(lantern, senderName, viewerTz)} />
+      <p className="text-xs text-muted-foreground">Arrivata {atTime(lantern.revealAt, viewerTz)}</p>
+      {lantern.reaction && <p aria-label="La tua reazione">{lantern.reaction}</p>}
     </li>
   );
 }

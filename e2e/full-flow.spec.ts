@@ -65,5 +65,6 @@ test("il ciclo completo, col viaggio nel tempo", async ({ browser }) => {
   await luca.getByRole("button", { name: "Sì, chiudi" }).click();
   await expect(luca).toHaveURL(/\/$/);
   await luca.getByRole("region", { name: "Connessioni chiuse" }).getByRole("link", { name: "Anna" }).click();
-  await expect(luca.getByRole("region", { name: "Ricordi" }).getByText(TESTO)).toBeVisible();
+  await expect(luca.getByRole("heading", { name: "Ricordi con Anna" })).toBeVisible();
+  await expect(luca.getByText(TESTO, { exact: true }).filter({ visible: true })).toBeVisible();
 });

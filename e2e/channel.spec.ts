@@ -62,7 +62,9 @@ test("le lanterne restano sigillate fino all'orario, poi si leggono e si conserv
   await expect(text.getByRole("button", { name: "💛" })).toHaveAttribute("aria-pressed", "true");
   await text.getByRole("button", { name: "Conserva" }).click();
   await expect(text.getByText("Conservata")).toBeVisible();
-  await expect(luca.getByRole("region", { name: "Ricordi" }).getByText(TRAMONTO)).toBeVisible();
+  await luca.getByRole("link", { name: "Ricordi (1)" }).click();
+  await expect(luca.getByRole("heading", { name: "Ricordi con Anna" })).toBeVisible();
+  await expect(luca.getByText(TRAMONTO, { exact: true }).filter({ visible: true })).toBeVisible();
 
   // Anna, con lo stesso orologio, vede la lanterna aperta.
   await setClockOffset(anna, offset);

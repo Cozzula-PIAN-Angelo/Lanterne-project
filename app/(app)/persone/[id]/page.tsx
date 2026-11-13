@@ -1,25 +1,15 @@
 import Link from "next/link";
-import { notFound } from "next/navigation";
+import { notFound, redirect } from "next/navigation";
 import { ConnectionMenu } from "@/components/connection-menu";
 import { Countdown } from "@/components/countdown";
 import { LanternComposer } from "@/components/lantern-composer";
 import { LakeScene } from "@/components/lake/lake-scene";
-import { MemoryLantern } from "@/components/lantern-item";
 import { getChannel } from "@/lib/access/lanterns";
 import { requireOnboardedUser } from "@/lib/auth/session";
 import { getRequestClock } from "@/lib/clock/request";
 import { db } from "@/lib/db/client";
 import { errorMessage } from "@/lib/messages";
 import { formatDepartureLabel } from "@/lib/time/format";
-
-function Section({ title, children }: { title: string; children: React.ReactNode }) {
-  return (
-    <section aria-label={title} className="space-y-3">
-      <h2 className="text-lg font-medium">{title}</h2>
-      {children}
-    </section>
-  );
-}
 
 export default async function ChannelPage({ params }: PageProps<"/persone/[id]">) {
   const { id: connectionId } = await params;
@@ -30,6 +20,8 @@ export default async function ChannelPage({ params }: PageProps<"/persone/[id]">
 
   const { connection, sent, arrived, memories, partnerLeftNothing, nextDepartureAt, lastArrivalAt } = channel.value;
   const { partner, status } = connection;
+  // Una connessione chiusa ha solo i ricordi.
+  if (status === "ended") redirect(`/persone/${connectionId}/ricordi`);
   const viewerTz = user.timezone ?? "UTC";
   const nextDeparture = sent
     .filter((l) => l.sealed)
@@ -48,24 +40,20 @@ export default async function ChannelPage({ params }: PageProps<"/persone/[id]">
         </div>
       </header>
 
-      {status === "ended" && <p>Questa connessione è chiusa.</p>}
+      <LakeScene
+        serverNow={now.toISOString()}
+        tz={viewerTz}
+        lastArrivalAt={lastArrivalAt?.toISOString() ?? null}
+        nextArrivalAt={connection.nextArrivalAt?.toISOString() ?? null}
+        me={{ name: user.name, color: user.color ?? "" }}
+        partner={{ name: partner.name, color: partner.color }}
+        sent={sent}
+        arrived={arrived}
+        partnerLeftNothing={partnerLeftNothing}
+        connectionId={connectionId}
+      />
 
-      {status !== "ended" && (
-        <LakeScene
-          serverNow={now.toISOString()}
-          tz={viewerTz}
-          lastArrivalAt={lastArrivalAt?.toISOString() ?? null}
-          nextArrivalAt={connection.nextArrivalAt?.toISOString() ?? null}
-          me={{ name: user.name, color: user.color ?? "" }}
-          partner={{ name: partner.name, color: partner.color }}
-          sent={sent}
-          arrived={arrived}
-          partnerLeftNothing={partnerLeftNothing}
-          connectionId={connectionId}
-        />
-      )}
-
-      {status !== "ended" && nextDeparture && (
+      {nextDeparture && (
         <div>
           <p className="text-sm">
             {formatDepartureLabel(nextDeparture, viewerTz, partner.timezone, partner.name, now)}
@@ -85,17 +73,12 @@ export default async function ChannelPage({ params }: PageProps<"/persone/[id]">
       {status === "pending" && <p>{errorMessage("connection_not_active")}</p>}
 
       {memories.length > 0 && (
-        <Section title="Ricordi">
-          <ul className="space-y-3">
-            {memories.map((lantern) => (
-              <MemoryLantern key={lantern.id} lantern={lantern} viewerTz={viewerTz} senderName={partner.name} />
-            ))}
-          </ul>
-        </Section>
+        <Link href={`/persone/${connectionId}/ricordi`} className="block text-sm underline underline-offset-4">
+          Ricordi ({memories.length})
+        </Link>
       )}
 
-      {status !== "ended" && (
-        <ConnectionMenu
+      <ConnectionMenu
           connectionId={connectionId}
           partnerName={partner.name}
           status={status}
@@ -103,7 +86,6 @@ export default async function ChannelPage({ params }: PageProps<"/persone/[id]">
           proposedRevealTime={connection.proposedRevealTime}
           proposedByMe={connection.proposedByMe}
         />
-      )}
     </div>
   );
 }

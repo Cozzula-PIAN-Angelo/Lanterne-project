@@ -51,7 +51,7 @@ export default async function HomePage() {
           <ul className="space-y-1">
             {closed.map((connection) => (
               <li key={connection.id}>
-                <Link href={`/persone/${connection.id}`} className="underline underline-offset-4">
+                <Link href={`/persone/${connection.id}/ricordi`} className="underline underline-offset-4">
                   {connection.partner.name}
                 </Link>
               </li>

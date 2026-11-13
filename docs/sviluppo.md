@@ -562,3 +562,16 @@ invece di dare una falsa conferma. Anche l'eliminazione dell'account cancella la
 
 L'interruttore resta disabilitato finché la pagina non è idratata: la resa del server lo mostra spento, e un tocco
 prima dell'idratazione si sarebbe perso.
+
+## Piano 3, Task 5: i Ricordi
+
+I ricordi hanno una pagina propria, `/persone/[id]/ricordi`, con il titolo "Ricordi con {nome}". `getMemories` in
+`lib/access/lanterns.ts` restituisce solo le lanterne conservate da chi guarda, raggruppate per sera dalla più
+recente. La sera è il giorno locale di `revealAt` meno un minuto nel fuso di chi guarda (letto dall'utente dentro
+`getMemories`), così un arrivo a mezzanotte appartiene alla sera prima. Funziona anche a connessione chiusa; per un
+estraneo risponde `not_found` come `getChannel`.
+
+Ogni sera ha il titolo con la data in lettere ("2 novembre"). Ogni ricordo mostra il contenuto, l'ora di invio, l'ora
+d'arrivo e la reazione data. Senza ricordi si legge "Qui finiscono le lanterne che conservi.". Il canale non elenca
+più i ricordi: mostra il link "Ricordi (n)" solo se n > 0. Aprire `/persone/[id]` di una connessione chiusa
+reindirizza ai Ricordi, e la home porta lì le "Connessioni chiuse".

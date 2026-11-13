@@ -1,9 +1,9 @@
-import { and, asc, eq, gt, isNotNull, lte } from "drizzle-orm";
+import { and, asc, desc, eq, gt, isNotNull, lte } from "drizzle-orm";
 import type { Db, Tx } from "@/lib/db/client";
 import { connections, lanterns, user } from "@/lib/db/schema";
 import { REACTIONS, TEXT_MAX, THOUGHTS } from "@/lib/lanterns/constants";
 import { computeExpiresAt, computeRevealAt } from "@/lib/time/lantern-times";
-import { previousOccurrence } from "@/lib/time/reveal-time";
+import { localDateOf, previousOccurrence } from "@/lib/time/reveal-time";
 import { getConnectionForMember, type ConnectionSummary } from "./connections";
 import { fail, ok, type AccessResult } from "./errors";
 
@@ -221,6 +221,52 @@ export async function getChannel(
     nextDepartureAt,
     lastArrivalAt,
   });
+}
+
+/**
+ * I ricordi di chi guarda in una connessione (anche chiusa), per sera, dalla più recente.
+ * La sera è il giorno locale di revealAt meno un minuto, nel fuso di chi guarda: un arrivo a mezzanotte
+ * appartiene alla sera prima. Il fuso si legge qui dall'utente.
+ */
+export async function getMemories(
+  db: Db,
+  input: { connectionId: string; userId: string; now: Date },
+): Promise<
+  AccessResult<{
+    partner: ConnectionSummary["partner"];
+    status: ConnectionSummary["status"];
+    evenings: { date: string; lanterns: LanternView[] }[];
+  }>
+> {
+  const { connectionId, userId, now } = input;
+  const found = await getConnectionForMember(db, { connectionId, userId, now });
+  if (!found.ok) return found;
+  const { partner, status } = found.value;
+
+  const [me] = await db.select({ timezone: user.timezone }).from(user).where(eq(user.id, userId));
+  const tz = me?.timezone ?? "UTC";
+  const rows = await db
+    .select()
+    .from(lanterns)
+    .where(
+      and(
+        eq(lanterns.connectionId, connectionId),
+        eq(lanterns.status, "ready"),
+        eq(lanterns.recipientId, userId),
+        isNotNull(lanterns.savedAt),
+      ),
+    )
+    .orderBy(desc(lanterns.revealAt));
+
+  const evenings: { date: string; lanterns: LanternView[] }[] = [];
+  for (const row of rows) {
+    const d = localDateOf(new Date(row.revealAt.getTime() - 60_000), tz);
+    const date = `${d.year}-${String(d.month).padStart(2, "0")}-${String(d.day).padStart(2, "0")}`;
+    const last = evenings[evenings.length - 1];
+    if (last?.date === date) last.lanterns.push(toView(row, now));
+    else evenings.push({ date, lanterns: [toView(row, now)] });
+  }
+  return ok({ partner, status, evenings });
 }
 
 export async function deleteLantern(
