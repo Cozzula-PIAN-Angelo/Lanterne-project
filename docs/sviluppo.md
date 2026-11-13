@@ -575,3 +575,14 @@ Ogni sera ha il titolo con la data in lettere ("2 novembre"). Ogni ricordo mostr
 d'arrivo e la reazione data. Senza ricordi si legge "Qui finiscono le lanterne che conservi.". Il canale non elenca
 più i ricordi: mostra il link "Ricordi (n)" solo se n > 0. Aprire `/persone/[id]` di una connessione chiusa
 reindirizza ai Ricordi, e la home porta lì le "Connessioni chiuse".
+
+## Piano 3, Task 11: "Fai arrivare adesso"
+
+Nel canale, solo con `NODE_ENV=development` e a connessione attiva, il pulsante "Fai arrivare adesso" porta a ora
+`revealAt` di tutte le lanterne `ready` ancora in attesa, in entrambe le direzioni (`arriveNow` in `lib/access/dev.ts`,
+in una sola transazione). `expiresAt` si ricalcola con il fuso del destinatario e `notifiedAt` resta nullo. A
+differenza del Viaggio nel tempo, che sposta solo l'orologio delle pagine, questo cambia il database: il worker, che
+segue l'ora reale, notifica al giro successivo. L'azione `devArriveNowAction` rifiuta fuori dallo sviluppo prima di
+toccare il database (il controllo è `canArriveNow`, testato a parte perché importare un'azione "use server" in
+vitest è scomodo) e usa `systemClock`, non l'ora del cookie. Per un estraneo o una connessione non attiva risponde
+`not_found`.

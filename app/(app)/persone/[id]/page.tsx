@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import { ConnectionMenu } from "@/components/connection-menu";
+import { DevArriveNow } from "@/components/dev-arrive-now";
 import { Countdown } from "@/components/countdown";
 import { LanternComposer } from "@/components/lantern-composer";
 import { LakeScene } from "@/components/lake/lake-scene";
@@ -71,6 +72,10 @@ export default async function ChannelPage({ params }: PageProps<"/persone/[id]">
         />
       )}
       {status === "pending" && <p>{errorMessage("connection_not_active")}</p>}
+
+      {process.env.NODE_ENV === "development" && status === "active" && (
+        <DevArriveNow connectionId={connectionId} />
+      )}
 
       {memories.length > 0 && (
         <Link href={`/persone/${connectionId}/ricordi`} className="block text-sm underline underline-offset-4">
