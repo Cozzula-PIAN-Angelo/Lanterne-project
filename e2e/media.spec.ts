@@ -42,6 +42,7 @@ test("un vocale si registra, parte all'orario e si ascolta", async ({ browser })
   // Prima dell'arrivo Luca non vede niente.
   await luca.goto(channel);
   await expect(luca.getByRole("heading", { name: "Anna" })).toBeVisible();
+  await expect(luca.getByRole("list", { name: "Arrivate" })).toHaveCount(0);
   await expect(luca.getByText("Vocale")).toHaveCount(0);
 
   await setClockOffset(luca, offsetToArrival());

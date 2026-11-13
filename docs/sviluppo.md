@@ -525,3 +525,19 @@ abbassato dietro la riva. Il bordo delle lanterne spente è un po' più scuro de
 `#8d82b0`) e le accese hanno un bordo scurito sui fondi chiari, perché altrimenti sulla riva di giorno restavano
 sotto 3:1. Il testo della scena sta solo sul cielo e sulla riva vicina, dove il rapporto minimo è 6,56:1 (cielo alto del crepuscolo);
 sulla riva lontana del tramonto sarebbe 4,04:1, e lì non c'è testo.
+
+**Revisione: posti fissi sul lago.** La revisione ha trovato che con `lanternSpot` basata solo sull'hash dell'id le
+lanterne si coprivano spesso (con cinque lanterne sulla riva lontana, in più di metà dei casi un pulsante copriva il
+centro di un altro), e un tocco poteva aprire la lanterna sbagliata, anche nei test. Ora ogni area ha dei posti fissi,
+in file sfalsate di 10 e 9 colonne a 33 px l'una dall'altra, e la lanterna numero `index` prende un posto scelto con un
+passo primo con il numero dei posti, così le prime finiscono lontane tra loro e aggiungerne una non sposta le altre.
+Dall'id resta solo uno scarto orizzontale di ±2 px. Le fasce sono cambiate: riva lontana dal 30 al 38 %, acqua dal 50
+al 66 %, riva vicina dal 79 all'87 %. Con la scena di riferimento di 390 × 416 px i centri della stessa area distano
+almeno 32 px finché ci stanno (19 lanterne per riva, 29 sull'acqua) e tra un'area e l'altra restano almeno 16 px tra i
+bordi dei pulsanti. Oltre, l'area passa a file fitte a 16,6 px con le colonne ristrette: i pulsanti si toccano, ma il
+centro di ognuno resta scoperto fino a 63 lanterne per riva. Sono tutte garanzie dei test unitari. La scritta "la riva
+di…" è salita al 18 % per lasciare spazio alla prima fila.
+
+Nella stessa revisione `useServerClock` misura lo scarto con il dispositivo una sola volta per ogni orario del
+server: una pagina rimostrata dalla cache rimonta gli effetti con il vecchio `serverNow`, e rimisurarlo lì riportava
+indietro l'orologio.

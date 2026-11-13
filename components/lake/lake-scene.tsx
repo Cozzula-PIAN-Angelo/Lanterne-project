@@ -163,7 +163,7 @@ export function LakeScene({
           <path d="M0 74.5 Q14 71.6 28 73 T56 72.6 T100 73.2 V100 H0Z" style={{ fill: "var(--lake-near)" }} />
         </svg>
 
-        <p className="absolute inset-x-0 top-[22%] text-center text-sm italic">la riva di {partner.name}</p>
+        <p className="absolute inset-x-0 top-[18%] text-center text-sm italic">la riva di {partner.name}</p>
 
         {arrived.length > 0 && (
           <div role="list" aria-label="Arrivate" className="pointer-events-none absolute inset-0">

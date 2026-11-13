@@ -55,12 +55,13 @@ test("il lago segue il cielo e la pagina aperta vede arrivare le lanterne", asyn
   await luca.reload();
   await expect(lake).toHaveAttribute("data-phase", "sunset");
 
-  // Pochi secondi prima: la pagina resta aperta e la sera arriva da sola, con la lanterna.
-  await setClockOffset(luca, offsetBeforeArrival(5_000));
+  // Pochi secondi prima (con margine per un server lento): la pagina resta aperta e la sera
+  // arriva da sola, con la lanterna.
+  await setClockOffset(luca, offsetBeforeArrival(12_000));
   await luca.reload();
   await expect(lake).toHaveAttribute("data-phase", "sunset");
-  await expect(lake).toHaveAttribute("data-phase", "night", { timeout: 20_000 });
-  await expect(arrived.getByRole("button", { name: /^Testo di Anna/ })).toBeVisible({ timeout: 20_000 });
+  await expect(lake).toHaveAttribute("data-phase", "night", { timeout: 30_000 });
+  await expect(arrived.getByRole("button", { name: /^Testo di Anna/ })).toBeVisible({ timeout: 30_000 });
 
   const panel = await openLantern(luca, "Arrivate", /^Testo di Anna/);
   await expect(panel.getByText(TESTO)).toBeVisible();

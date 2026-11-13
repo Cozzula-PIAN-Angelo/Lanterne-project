@@ -14,7 +14,10 @@ const TICK_MS = 30_000;
 export function useServerClock(serverNow: string, nextChange: (now: Date) => Date | null): Date {
   const router = useRouter();
   const serverMs = Date.parse(serverNow);
-  const skew = useRef(0);
+  // Lo scarto si misura una volta sola per ogni orario del server. Con cacheComponents una pagina
+  // nascosta e poi rimostrata rimonta gli effetti con il vecchio `serverNow`: rimisurarlo lì
+  // riporterebbe indietro l'orologio.
+  const sync = useRef<{ serverNow: string; skew: number } | null>(null);
   // L'ultimo battito vale solo per l'orario del server da cui è partito: un refresh o un
   // viaggio nel tempo portano un `serverNow` nuovo e si riparte da quello.
   const [tick, setTick] = useState<{ serverNow: string; nowMs: number } | null>(null);
@@ -22,13 +25,13 @@ export function useServerClock(serverNow: string, nextChange: (now: Date) => Dat
   const boundary = nextChange(new Date(nowMs))?.getTime() ?? null;
 
   useEffect(() => {
-    skew.current = serverMs - Date.now();
-  }, [serverMs]);
+    if (sync.current?.serverNow !== serverNow) sync.current = { serverNow, skew: serverMs - Date.now() };
+  }, [serverNow, serverMs]);
 
   useEffect(() => {
     const wait = boundary === null ? TICK_MS : Math.min(TICK_MS, Math.max(0, boundary - nowMs));
     const timer = setTimeout(() => {
-      const next = Date.now() + skew.current;
+      const next = Date.now() + (sync.current?.skew ?? 0);
       setTick({ serverNow, nowMs: next });
       if (boundary !== null && next >= boundary) router.refresh();
     }, wait);
