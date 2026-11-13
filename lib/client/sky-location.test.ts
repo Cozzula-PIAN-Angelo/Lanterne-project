@@ -51,4 +51,6 @@ test("storage che lancia → null, nessuna eccezione", () => {
   } as unknown as Storage;
   expect(readSkyLocation(throwing)).toBeNull();
   expect(() => saveSkyLocation({ lat: 1, lng: 1 }, throwing)).not.toThrow();
+  expect(saveSkyLocation({ lat: 1, lng: 1 }, throwing)).toBe(false);
+  expect(saveSkyLocation({ lat: 1, lng: 1 }, memoryStorage().storage)).toBe(true);
 });

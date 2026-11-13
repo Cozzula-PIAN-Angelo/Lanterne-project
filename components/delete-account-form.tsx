@@ -4,6 +4,7 @@ import { useActionState } from "react";
 import { deleteAccountAction } from "@/app/(app)/actions/account";
 import { Button } from "@/components/ui/button";
 import { outboxStore } from "@/lib/client/outbox-store";
+import { clearSkyLocation } from "@/lib/client/sky-location";
 import { dropPushSubscription } from "@/lib/client/push";
 
 export function DeleteAccountForm({ userId }: { userId: string }) {
@@ -14,6 +15,7 @@ export function DeleteAccountForm({ userId }: { userId: string }) {
       // La riga è già sparita con l'account: resta da spegnere l'iscrizione del browser.
       await dropPushSubscription();
       await outboxStore.clear(userId);
+      clearSkyLocation();
       // Ricarica vera: le pagine già visitate restano in memoria e non devono sopravvivere all'account.
       window.location.assign(result.redirectTo);
       return null;

@@ -49,13 +49,19 @@ function notify() {
   if (typeof window !== "undefined") window.dispatchEvent(new Event(SKY_LOCATION_CHANGED));
 }
 
-export function saveSkyLocation(loc: SkyLocation, storage: Storage | null = defaultStorage()): void {
+/** true solo se il valore è stato scritto davvero (in navigazione privata lo storage può rifiutarlo). */
+export function saveSkyLocation(loc: SkyLocation, storage: Storage | null = defaultStorage()): boolean {
+  let saved = false;
   try {
-    storage?.setItem(KEY, JSON.stringify({ lat: roundCoord(loc.lat), lng: roundCoord(loc.lng) }));
+    if (storage) {
+      storage.setItem(KEY, JSON.stringify({ lat: roundCoord(loc.lat), lng: roundCoord(loc.lng) }));
+      saved = true;
+    }
   } catch {
     // Storage bloccato: il cielo resta quello senza posizione.
   }
   notify();
+  return saved;
 }
 
 export function clearSkyLocation(storage: Storage | null = defaultStorage()): void {

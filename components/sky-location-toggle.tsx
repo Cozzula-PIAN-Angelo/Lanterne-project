@@ -15,6 +15,7 @@ function subscribe(onChange: () => void) {
 const NO_CHANGE = () => () => {};
 
 const MESSAGES = {
+  failed: "Non riesco a salvarla su questo telefono: il cielo segue l'orario di apertura.",
   saved: "Fatto: ora il cielo segue il tramonto vero.",
   denied: "Il browser non dà la posizione: il cielo segue l'orario di apertura.",
 } as const;
@@ -40,8 +41,8 @@ export function SkyLocationToggle() {
     setPending(true);
     navigator.geolocation.getCurrentPosition(
       ({ coords }) => {
-        saveSkyLocation({ lat: coords.latitude, lng: coords.longitude });
-        setMessage("saved");
+        const saved = saveSkyLocation({ lat: coords.latitude, lng: coords.longitude });
+        setMessage(saved ? "saved" : "failed");
         setPending(false);
       },
       () => {

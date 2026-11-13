@@ -175,9 +175,9 @@ test("con la posizione il cielo segue il tramonto vero, e la posizione non lasci
   await anna.goto(channel);
   await expect(lake).toHaveAttribute("data-phase", "day");
 
-  for (const request of requests) {
-    for (const coordinate of ["41.9", "12.5", "41.90", "12.49"]) {
-      expect(request, `una richiesta contiene ${coordinate}`).not.toContain(coordinate);
-    }
-  }
+  // Il test calcola il tramonto dalle coordinate non arrotondate; il margine del punto medio (ore, non minuti) rende
+  // sicuro il confronto con la fase del lago, che usa quelle arrotondate. I numeri sono cercati come numeri interi
+  // a sé, per non confonderli con id, date o byte di altro tipo.
+  const coordinate = /(^|[^\d.])(41\.9\d*|12\.[45]\d*)(?![\d.])/;
+  for (const request of requests) expect(request).not.toMatch(coordinate);
 });

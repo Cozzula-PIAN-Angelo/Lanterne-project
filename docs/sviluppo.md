@@ -557,5 +557,8 @@ testo salvato, così resta lo stesso oggetto finché non cambia e non si entra i
 fuori da ±90 / ±180 o `localStorage` che lancia valgono "nessuna posizione". All'uscita riuscita dall'account la
 posizione si cancella insieme alla coda dei vocali.
 
+Se `localStorage` rifiuta la scrittura (navigazione privata), `saveSkyLocation` risponde `false` e l'interruttore lo dice
+invece di dare una falsa conferma. Anche l'eliminazione dell'account cancella la posizione dal dispositivo.
+
 L'interruttore resta disabilitato finché la pagina non è idratata: la resa del server lo mostra spento, e un tocco
 prima dell'idratazione si sarebbe perso.
