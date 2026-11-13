@@ -2,9 +2,13 @@ name: CI
 
 on:
   push:
-    branches: [main]
+    branches: [main, "piano-*"]
   pull_request:
     branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
 
 jobs:
   ci:
@@ -51,3 +55,7 @@ jobs:
           name: test-results
           path: test-results/
           if-no-files-found: ignore
+
+      - name: Log dei servizi
+        if: failure()
+        run: docker compose logs --no-color --tail=200

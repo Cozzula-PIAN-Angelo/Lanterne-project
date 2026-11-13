@@ -631,10 +631,11 @@ direzioni, oltre a quelle già conservate dall'altra persona.
 
 ## Piano 3, Task 8: CI con GitHub Actions
 
-`.github/workflows/ci.yml` gira su ogni push e pull request verso `main`, in un solo job su `ubuntu-latest` (30 minuti
+`.github/workflows/ci.yml` gira sui push a `main` e a `piano-*`, sulle pull request verso `main` e a mano
+(`workflow_dispatch`), con permessi in sola lettura, in un solo job su `ubuntu-latest` (30 minuti
 al massimo). Installa pnpm dalla versione di `packageManager` e Node LTS con la cache di pnpm, accende i servizi con
 `docker compose up -d --wait`, poi `pnpm run setup` (`.env`, chiavi VAPID, bucket, migrazioni, dati demo), lint,
-typecheck, test unitari, di integrazione ed e2e con Chromium. Se qualcosa fallisce carica `test-results/` come artifact.
+typecheck, test unitari, di integrazione ed e2e con Chromium. Se qualcosa fallisce carica `test-results/` come artifact e stampa gli ultimi log dei servizi.
 
 - Il servizio `postgres` ha un healthcheck `pg_isready` su TCP (`-h 127.0.0.1`): durante lo script iniziale il server
   temporaneo ascolta solo sul socket, quindi senza `-h` la compose lo darebbe per pronto prima che esistano
