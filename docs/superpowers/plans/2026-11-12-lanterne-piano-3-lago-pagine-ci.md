@@ -15,7 +15,7 @@
 ## Decisioni già prese con l'utente
 
 - **Minori rinviati dal Piano 2:** si correggono tutti e cinque, in un task dedicato (Task 7), ognuno partendo da un test che fallisce.
-- **Tasto dev "Fai arrivare adesso":** non si fa. L'utente lo vuole solo se un test ne ha bisogno, e nessun test di questo piano ne ha: e2e e GIF del README usano il Viaggio nel tempo, che sposta già l'orologio delle pagine. Resta un'idea annotata nel diario.
+- **Tasto dev "Fai arrivare adesso":** si fa, con i suoi test (Task 11). Il 2026-11-13 l'utente ha corretto la risposta data durante la stesura del piano: intendeva sì.
 - **Testo del blocco:** la conferma dice anche che spariscono le lanterne non ancora arrivate, in entrambe le direzioni (Task 7).
 - **Branch:** `piano-3`, da `main` dopo il merge della PR #2.
 - **Niente Docker né permessi di amministratore in locale.** La CI invece usa `docker compose`, che su GitHub Actions c'è già.
@@ -601,3 +601,47 @@ Con l'utente e il Nothing A024, via `adb reverse`, sulla build di produzione (`p
 git add docs README.md
 git commit -m "docs: finish plan 3 with device checks"
 ```
+
+---
+
+### Task 11: Tasto dev "Fai arrivare adesso"
+
+Aggiunto il 2026-11-13. Si esegue subito dopo il Task 5.
+
+**Scopo:** in sviluppo, far arrivare subito le lanterne in attesa di un canale, in entrambe le direzioni. A differenza del Viaggio nel tempo, che sposta solo l'orologio delle pagine, cambia `revealAt` nel database: così anche il worker, che segue l'ora reale, manda la notifica al giro successivo. Serve per provare le notifiche sul telefono senza toccare il database a mano.
+
+**Files:**
+- Create: `lib/access/dev.ts`, `tests/integration/dev.test.ts`, `components/dev-arrive-now.tsx`, `e2e/dev-arrive.spec.ts`
+- Modify: `app/(app)/actions/dev.ts`, `app/(app)/persone/[id]/page.tsx`, `README.md` (sezione sul Viaggio nel tempo), `docs/sviluppo.md`
+
+**Interfaces:**
+- Produces: `arriveNow(db: Db, input: { connectionId: string; userId: string; now: Date }): Promise<AccessResult<{ count: number }>>` — per le lanterne `ready` della connessione con `revealAt > now` (entrambe le direzioni): `revealAt ← now`, `expiresAt ← computeExpiresAt(now, fuso del destinatario)`, `notifiedAt` resta nullo. Solo per un membro di una connessione `active`; altrimenti lo stesso esito `not_found` di `getChannel`.
+- Produces: `devArriveNowAction(formData: FormData): Promise<{ count: number } | { error: string }>` — rifiuta con errore se `process.env.NODE_ENV !== "development"`, prima di toccare il database. Usa l'ora **reale** (`systemClock`), non quella del cookie: il worker segue l'ora reale.
+
+**Interfaccia:** un pulsante "Fai arrivare adesso" nel canale, solo con `NODE_ENV=development`, con lo stesso stile tratteggiato del pannello del Viaggio nel tempo. Dopo il clic: "Arrivate adesso: 2 lanterne" (singolare "1 lanterna"), oppure "Nessuna lanterna in attesa.", poi `router.refresh()`.
+
+- [ ] **Step 1: Test che falliscono**
+
+Integrazione (`tests/integration/dev.test.ts`):
+
+```ts
+test("arriveNow anticipa le lanterne in attesa in entrambe le direzioni", ...); // una per verso: revealAt = now, expiresAt = computeExpiresAt(now, fuso del destinatario), count 2
+test("non tocca le lanterne già arrivate né quelle in caricamento", ...);         // revealAt passato e status uploading invariati
+test("dopo arriveNow notifyArrivals le trova", ...);                               // notifyArrivals(db, { now, send: finto }) → 1 gruppo per destinatario
+test("un estraneo o una connessione non attiva ricevono not_found", ...);
+```
+
+Unit o integrazione sull'azione: con `NODE_ENV` diverso da `development` l'azione restituisce un errore e nessuna riga cambia.
+
+E2e (`e2e/dev-arrive.spec.ts`): Anna lascia un testo per Luca; Luca, senza Viaggio nel tempo, tocca "Fai arrivare adesso", vede "Arrivate adesso: 1 lanterna" e il pulsante `/^Testo di Anna/` nella lista "Arrivate".
+
+- [ ] **Step 2: Verifica che falliscano.** Run: `pnpm test:int tests/integration/dev.test.ts`, `pnpm test:e2e e2e/dev-arrive.spec.ts`. Expected: FAIL.
+- [ ] **Step 3: Implementa** funzione, azione e pulsante.
+- [ ] **Step 4: Verifica.** Run: `pnpm typecheck || exit 1; pnpm lint || exit 1; pnpm test:int || exit 1; pnpm test:e2e e2e/dev-arrive.spec.ts e2e/lake.spec.ts`. Expected: PASS.
+- [ ] **Step 5: README, diario e commit**
+
+```bash
+git add lib/access/dev.ts tests/integration/dev.test.ts components/dev-arrive-now.tsx e2e/dev-arrive.spec.ts app README.md docs/sviluppo.md
+git commit -m "feat: dev button to make waiting lanterns arrive now"
+```
+
