@@ -46,6 +46,12 @@ Asynchronous, time-shifted closeness: content is sealed until an agreed local cl
 - The channel between two people is a lake: the other person's shore is far away, your own is close; their lanterns arrive from their shore and float lit on the water. This metaphor is binding.
 - Voice: calm, plain Italian, never blaming, no pressure, no guilt-inducing counters or streaks.
 - Not binding for the visual redesign (confirmed by the user on 2026-11-13): the current lantern encoding (colour = person, shape = type, size = length), the 8 personal colours, and the name.
+- Signature, identical in every theme (user, 2026-11-13): the lake is the meeting point between two people, the place every message must cross to reach the other. Two elements carry it: the composition of the lake (the other person's shore far, your own near, the water between) and the moment of arrival (at the agreed time the scene turns to evening and the lanterns cross the lake from the other shore). Lantern drawing, typeface and palette may change with the theme.
+
+## Themes
+
+- The user chooses a theme in Settings; the theme covers the whole app (lake, home, invites, Memories, settings), not only the channel.
+- Plan agreed on 2026-11-13: one main theme built in full now, with the app structured for themes (shared signature in the scene code, theme as tokens plus a material "skin" of the lake). A second theme comes later.
 
 ## Evidence on Hand
 
