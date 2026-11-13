@@ -1,4 +1,5 @@
 import { Suspense } from "react";
+import { InfoFooter } from "@/components/info-footer";
 import { SignInForm } from "@/components/auth/sign-in-form";
 import { isDemoLoginEnabled } from "@/lib/auth/demo";
 import { safeNextPath } from "@/lib/auth/next-path";
@@ -19,6 +20,7 @@ export default function SignInPage({ searchParams }: PageProps<"/accedi">) {
       <Suspense fallback={<p className="text-muted-foreground">Un attimo…</p>}>
         <SignIn searchParams={searchParams} />
       </Suspense>
+      <InfoFooter />
     </main>
   );
 }

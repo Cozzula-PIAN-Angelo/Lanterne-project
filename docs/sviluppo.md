@@ -586,3 +586,22 @@ segue l'ora reale, notifica al giro successivo. L'azione `devArriveNowAction` ri
 toccare il database (il controllo è `canArriveNow`, testato a parte perché importare un'azione "use server" in
 vitest è scomodo) e usa `systemClock`, non l'ora del cookie. Per un estraneo o una connessione non attiva risponde
 `not_found`.
+
+## Piano 3, Task 6: Privacy e "Se stai male"
+
+Due pagine pubbliche, fuori da `(app)`: `/privacy` e `/se-stai-male`. Si leggono senza account. Il componente
+`InfoFooter` porta ai due link in fondo a `/accedi` e alle Impostazioni. La pagina Privacy dice cosa viene salvato,
+per quanto, chi lo vede, che la posizione resta sul telefono, che non ci sono analisi di terze parti, che le foto
+perdono i metadati e che eliminando l'account si cancella tutto. Dice anche che il progetto è dimostrativo e non ancora
+online, e che non è un'informativa legale completa.
+
+Numeri e orari di "Se stai male" sono stati verificati dal controller il 2026-11-13 su `telefonoamico.it` (home e
+pagina "Come contattarci"):
+
+- Telefono Amico Italia: 02 2327 2327, tutti i giorni, 24 ore su 24. Il servizio è gratuito; il costo della chiamata
+  dipende dall'operatore. Link `tel:+390223272327`.
+- WhatsApp Amico: 324 011 72 52, tutti i giorni dalle 18 alle 21. Link `https://wa.me/393240117252`.
+- Il sito stesso indica il 112 o il 118 in caso di pericolo imminente; la pagina usa il 112 (`tel:112`).
+- `findahelpline.com` raccoglie i servizi di ascolto per paese.
+
+Se un numero cambia, va riverificato sul sito ufficiale e la data aggiornata qui.
