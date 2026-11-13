@@ -13,12 +13,17 @@ type SignOutDeps = {
  */
 export async function signOutDevice(deps: SignOutDeps): Promise<boolean> {
   const subscription = await deps.forgetPushOnServer();
-  const { ok } = await deps.signOut();
+  // Una uscita che lancia (rete assente) vale come fallita: la sottoscrizione va ripristinata.
+  const ok = await deps
+    .signOut()
+    .then((result) => result.ok)
+    .catch(() => false);
   if (!ok) {
     if (subscription) await deps.restorePushOnServer(subscription);
     return false;
   }
-  if (subscription) await deps.unsubscribeBrowser(subscription);
-  await deps.clearLocalData();
+  // Si è già usciti: un errore nella pulizia locale non deve fermare il passaggio a /accedi.
+  if (subscription) await deps.unsubscribeBrowser(subscription).catch(() => {});
+  await deps.clearLocalData().catch(() => {});
   return true;
 }

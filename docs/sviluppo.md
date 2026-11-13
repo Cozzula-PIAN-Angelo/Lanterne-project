@@ -614,11 +614,13 @@ Cinque difetti lasciati dal Piano 2, ognuno corretto partendo da un test rosso.
   ma la sottoscrizione resta nel browser. Se l'uscita fallisce la risalva con `savePushAction`, così le notifiche non
   restano spente; se riesce fa `unsubscribe` e svuota coda e posizione del cielo. `dropPushSubscription` resta per il
   pulsante delle notifiche e per l'eliminazione dell'account.
+  Se `signOut` lancia (rete assente) vale come fallita e la sottoscrizione si ripristina; se la pulizia locale lancia
+  dopo un'uscita riuscita, l'uscita finisce lo stesso e si passa a `/accedi`.
 - Limite di età della coda: ogni elemento porta `queuedAt`. Oltre 24 ore (`OUTBOX_MAX_AGE_MS`) non parte più e diventa
   `rejected` con un messaggio chiaro. Gli elementi salvati prima di questa modifica non hanno `queuedAt` e contano come
   appena accodati. `flushOutbox` riceve l'ora come quarto parametro.
 - Righe senza destinatario: `outboxRowLabel` costruisce il testo ("Vocale per Giulia: in attesa di rete") e l'avviso
-  di ritardo nomina la persona. L'avviso vale solo per la pagina in cui è comparso.
+  di ritardo nomina la persona. L'avviso sparisce al primo cambio di pagina e non ricompare tornando indietro.
 - "In attesa di rete" a rete funzionante: se il browser è online e l'elemento è rimasto in attesa dopo un giro, la riga
   dice "nuovo tentativo tra poco".
 - Server Action senza timeout: `withTimeout` (30 secondi, `ACTION_TIMEOUT_MS`) attorno a richiesta e conferma; allo

@@ -43,9 +43,11 @@ export async function restorePushOnServer(subscription: PushSubscription): Promi
     form.set("endpoint", subscription.endpoint);
     form.set("p256dh", keys?.p256dh ?? "");
     form.set("auth", keys?.auth ?? "");
+    // savePushAction risponde con { error } invece di lanciare: in entrambi i casi non si può fare altro,
+    // si è ancora dentro e le notifiche si riaccendono dal pulsante delle Impostazioni.
     await savePushAction(form);
   } catch {
-    // Se anche questo fallisce, il prossimo accesso lo rifà dal pulsante delle notifiche.
+    // Come sopra: il ripristino è un tentativo, non deve far fallire l'uscita già annullata.
   }
 }
 

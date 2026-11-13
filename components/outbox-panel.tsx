@@ -17,6 +17,8 @@ export function OutboxPanel({ userId }: { userId: string }) {
   // Gli elementi che dopo un giro sono rimasti in attesa: la rete c'è, ma il tentativo è fallito.
   const [failed, setFailed] = useState<ReadonlySet<string>>(new Set());
   const [online, setOnline] = useState(true);
+  // Cambiando pagina l'avviso va via per sempre: tornare indietro non lo rimostra.
+  if (late && late.path !== pathname) setLate(null);
   const running = useRef(false);
   const again = useRef(false);
   const attempts = useRef(0);
@@ -107,7 +109,7 @@ export function OutboxPanel({ userId }: { userId: string }) {
 
   return (
     <>
-      {late && late.path === pathname && (
+      {late && (
         <p role="status" className="mb-4 text-sm">
           {late.name ? `La lanterna per ${late.name}` : "La lanterna"} era in attesa di rete: partirà la sera dopo.
         </p>

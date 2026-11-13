@@ -41,3 +41,19 @@ test("senza sottoscrizione si esce lo stesso, senza niente da ripristinare", asy
   expect(done.unsubscribeBrowser).not.toHaveBeenCalled();
   expect(done.clearLocalData).toHaveBeenCalled();
 });
+
+test("signOut che lancia conta come uscita fallita: si ripristina, senza rifiuti", async () => {
+  const d = deps();
+  d.signOut.mockRejectedValue(new Error("rete"));
+  await expect(signOutDevice(d)).resolves.toBe(false);
+  expect(d.restorePushOnServer).toHaveBeenCalledWith(sub);
+  expect(d.unsubscribeBrowser).not.toHaveBeenCalled();
+  expect(d.clearLocalData).not.toHaveBeenCalled();
+});
+
+test("clearLocalData che lancia dopo un'uscita riuscita non impedisce di finire l'uscita", async () => {
+  const d = deps();
+  d.clearLocalData.mockRejectedValue(new Error("IndexedDB rotto"));
+  await expect(signOutDevice(d)).resolves.toBe(true);
+  expect(d.unsubscribeBrowser).toHaveBeenCalledWith(sub);
+});
