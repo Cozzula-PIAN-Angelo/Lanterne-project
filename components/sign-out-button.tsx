@@ -5,7 +5,8 @@ import { Button } from "@/components/ui/button";
 import { authClient } from "@/lib/auth/auth-client";
 import { outboxStore } from "@/lib/client/outbox-store";
 import { clearSkyLocation } from "@/lib/client/sky-location";
-import { dropPushSubscription } from "@/lib/client/push";
+import { forgetPushOnServer, restorePushOnServer, unsubscribeBrowser } from "@/lib/client/push";
+import { signOutDevice } from "@/lib/client/sign-out";
 
 export function SignOutButton({ userId }: { userId: string }) {
   const [failed, setFailed] = useState(false);
@@ -19,18 +20,23 @@ export function SignOutButton({ userId }: { userId: string }) {
   }
 
   async function signOut() {
-    // Prima di chiudere la sessione, che serve per togliere la riga. Su un telefono condiviso
-    // le notifiche, con i nomi delle persone, non devono arrivare a chi entra dopo.
-    await dropPushSubscription();
-    const { error } = await authClient.signOut();
-    if (error) {
+    // Le notifiche, con i nomi delle persone, non devono arrivare a chi entra dopo su un telefono condiviso.
+    // I dati locali si tolgono solo a uscita riuscita: finché si resta dentro, i vocali possono ancora partire.
+    const done = await signOutDevice({
+      forgetPushOnServer,
+      restorePushOnServer,
+      unsubscribeBrowser,
+      signOut: async () => ({ ok: !(await authClient.signOut()).error }),
+      clearLocalData: async () => {
+        await outboxStore.clear(userId);
+        clearSkyLocation();
+      },
+    });
+    if (!done) {
       setQueued(0);
       setFailed(true);
       return;
     }
-    // Solo a uscita riuscita: finché si resta dentro, i vocali possono ancora partire.
-    await outboxStore.clear(userId);
-    clearSkyLocation();
     // Ricarica vera: le pagine già visitate restano in memoria e non devono sopravvivere all'uscita.
     // eslint-disable-next-line @next/next/no-location-assign-relative-destination
     window.location.assign("/accedi");

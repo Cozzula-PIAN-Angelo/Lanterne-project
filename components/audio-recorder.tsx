@@ -29,10 +29,12 @@ export function AudioRecorder({
   userId,
   connectionId,
   expectedRevealAt,
+  partnerName,
 }: {
   userId: string;
   connectionId: string;
   expectedRevealAt: string;
+  partnerName: string;
 }) {
   // undefined durante il rendering sul server: il browser si conosce solo dopo.
   const mime = useSyncExternalStore(NO_CHANGE, supportedMime, () => undefined);
@@ -73,7 +75,7 @@ export function AudioRecorder({
   async function send(blob: Blob, durationSec: number) {
     setStatus("sending");
     // Prima si conserva, poi si invia: da qui in avanti il vocale non si perde. Se ne occupa il pannello.
-    await enqueue({ userId, connectionId, type: "audio", blob, durationSec, expectedRevealAt });
+    await enqueue({ userId, connectionId, type: "audio", blob, durationSec, expectedRevealAt, partnerName });
     setStatus("idle");
   }
 

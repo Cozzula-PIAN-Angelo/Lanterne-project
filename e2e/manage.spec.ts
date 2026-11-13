@@ -47,7 +47,7 @@ test("un cambio d'orario vale da domani e un blocco chiude tutto", async ({ brow
   await anna.getByRole("link", { name: "Luca" }).click();
   await anna.getByRole("button", { name: "Blocca" }).click();
   await expect(
-    anna.getByText("Luca non potrà più invitarti e le tue lanterne che ha conservato verranno eliminate."),
+    anna.getByText("La connessione si chiude e le lanterne non ancora arrivate vengono eliminate, in entrambe le direzioni. Luca non potrà più invitarti e le tue lanterne che ha conservato verranno eliminate."),
   ).toBeVisible();
   await anna.getByRole("button", { name: "Sì, blocca" }).click();
   await expect(anna).toHaveURL(/\/$/);

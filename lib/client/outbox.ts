@@ -8,6 +8,10 @@ export type OutboxItem = {
   blob: Blob;
   durationSec?: number;
   expectedRevealAt: string;
+  /** Quando è stato messo in coda (ISO). Manca negli elementi salvati prima del limite di età. */
+  queuedAt?: string;
+  /** Per chi è, perché le righe della coda non siano anonime. */
+  partnerName?: string;
   status: "waiting" | "rejected";
   message?: string;
   /** Il file è già sullo storage: resta solo da confermare. */
@@ -22,6 +26,9 @@ export type OutboxStore = {
 };
 
 type FlushResult = { sent: { id: string; late: boolean }[] };
+
+/** Oltre un giorno la lanterna non ha più il senso di partire: meglio dirlo che mandarla settimane dopo. */
+export const OUTBOX_MAX_AGE_MS = 24 * 60 * 60 * 1000;
 
 const RETRY_DELAYS_MS = [5_000, 30_000, 120_000];
 
@@ -66,10 +73,25 @@ async function deliver(store: OutboxStore, item: OutboxItem, upload: typeof uplo
   return attempt(restarted);
 }
 
-async function drain(store: OutboxStore, userId: string, upload: typeof uploadMedia): Promise<FlushResult> {
+async function drain(
+  store: OutboxStore,
+  userId: string,
+  upload: typeof uploadMedia,
+  nowMs: number,
+): Promise<FlushResult> {
   const sent: FlushResult["sent"] = [];
   for (const item of await store.list(userId)) {
     if (item.status !== "waiting") continue;
+    // Senza queuedAt (salvato prima di questo limite) si conta come appena accodato.
+    if (item.queuedAt && nowMs - new Date(item.queuedAt).getTime() > OUTBOX_MAX_AGE_MS) {
+      await store.put({
+        ...item,
+        uploaded: undefined,
+        status: "rejected",
+        message: "È rimasta in attesa più di un giorno e non è partita.",
+      });
+      continue;
+    }
     const outcome = await deliver(store, item, upload);
     // Senza rete anche i successivi fallirebbero: si riprova tutti insieme al prossimo giro.
     if (outcome.kind === "network") break;
@@ -90,10 +112,15 @@ const running = new Map<string, Promise<FlushResult>>();
  * Un giro alla volta per utente: una chiamata durante un giro ne riceve l'esito.
  * Tra schede diverse decide il lock del browser: la seconda aspetta e rilegge la coda, già svuotata.
  */
-export function flushOutbox(store: OutboxStore, userId: string, upload: typeof uploadMedia): Promise<FlushResult> {
+export function flushOutbox(
+  store: OutboxStore,
+  userId: string,
+  upload: typeof uploadMedia,
+  nowMs: number,
+): Promise<FlushResult> {
   const current = running.get(userId);
   if (current) return current;
-  const work = () => drain(store, userId, upload);
+  const work = () => drain(store, userId, upload, nowMs);
   const exclusive = async () => {
     const locks = globalThis.navigator?.locks;
     return locks ? await locks.request("lanterne-outbox", work) : await work();
@@ -101,4 +128,19 @@ export function flushOutbox(store: OutboxStore, userId: string, upload: typeof u
   const flush = exclusive().finally(() => running.delete(userId));
   running.set(userId, flush);
   return flush;
+}
+
+const KIND_LABEL = { audio: "Vocale", photo: "Foto" } as const;
+
+/** Il testo della riga in coda: per chi è, e perché non è ancora partita. */
+export function outboxRowLabel(
+  item: Pick<OutboxItem, "type" | "status" | "partnerName">,
+  state: { sending: boolean; online: boolean; failedOnce: boolean },
+): string {
+  const name = `${KIND_LABEL[item.type]}${item.partnerName ? ` per ${item.partnerName}` : ""}`;
+  if (item.status !== "waiting") return name;
+  if (state.sending) return `${name}: invio in corso…`;
+  // Con la rete accesa e un tentativo fallito il problema è il server, non la rete.
+  if (state.online && state.failedOnce) return `${name}: nuovo tentativo tra poco`;
+  return `${name}: in attesa di rete`;
 }

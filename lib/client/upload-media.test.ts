@@ -1,6 +1,6 @@
 import { afterEach, beforeEach, expect, test, vi } from "vitest";
 import { confirmUploadAction, requestUploadAction } from "@/app/(app)/actions/media";
-import { UPLOAD_TIMEOUT_MS, uploadMedia } from "./upload-media";
+import { ACTION_TIMEOUT_MS, UPLOAD_TIMEOUT_MS, uploadMedia } from "./upload-media";
 
 vi.mock("@/app/(app)/actions/media", () => ({
   requestUploadAction: vi.fn(),
@@ -85,4 +85,28 @@ test("un PUT bloccato scade e diventa errore di rete", async () => {
 
   await expect(pending).resolves.toEqual({ kind: "network" });
   expect(confirmUploadAction).not.toHaveBeenCalled();
+});
+
+test("una richiesta che non risponde entro 30 secondi diventa un errore di rete", async () => {
+  vi.useFakeTimers();
+  vi.mocked(requestUploadAction).mockImplementation(() => new Promise(() => {}));
+
+  const pending = uploadMedia(input);
+  await vi.advanceTimersByTimeAsync(ACTION_TIMEOUT_MS);
+
+  expect(await pending).toEqual({ kind: "network" });
+});
+
+test("una conferma che non risponde è un errore di rete e si può ripetere", async () => {
+  vi.useFakeTimers();
+  const uploaded = { lanternId: "l1", revealAt: TICKET.revealAt };
+  vi.mocked(confirmUploadAction).mockImplementationOnce(() => new Promise(() => {}));
+
+  const first = uploadMedia({ ...input, uploaded });
+  await vi.advanceTimersByTimeAsync(ACTION_TIMEOUT_MS);
+  expect(await first).toEqual({ kind: "network" });
+
+  const second = await uploadMedia({ ...input, uploaded });
+  expect(second).toEqual({ kind: "sent", revealAt: TICKET.revealAt });
+  expect(requestUploadAction).not.toHaveBeenCalled();
 });

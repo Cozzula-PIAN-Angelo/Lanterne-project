@@ -69,6 +69,7 @@ export default async function ChannelPage({ params }: PageProps<"/persone/[id]">
           userId={user.id}
           connectionId={connectionId}
           expectedRevealAt={nextDepartureAt.toISOString()}
+          partnerName={partner.name}
         />
       )}
       {status === "pending" && <p>{errorMessage("connection_not_active")}</p>}

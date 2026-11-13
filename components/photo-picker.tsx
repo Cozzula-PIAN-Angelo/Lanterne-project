@@ -8,10 +8,12 @@ export function PhotoPicker({
   userId,
   connectionId,
   expectedRevealAt,
+  partnerName,
 }: {
   userId: string;
   connectionId: string;
   expectedRevealAt: string;
+  partnerName: string;
 }) {
   const [pending, setPending] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -24,7 +26,7 @@ export function PhotoPicker({
       setError("Questa foto non si riesce ad aprire: provane un'altra.");
       return;
     }
-    await enqueue({ userId, connectionId, type: "photo", blob, expectedRevealAt });
+    await enqueue({ userId, connectionId, type: "photo", blob, expectedRevealAt, partnerName });
   }
 
   async function choose(event: ChangeEvent<HTMLInputElement>) {
