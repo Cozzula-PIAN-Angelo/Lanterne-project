@@ -4,7 +4,7 @@ export type LanternShape = "round" | "square" | "oval" | "dot";
 export type LakeArea = "near" | "water" | "far";
 
 /** Fasce verticali (in % della scena) e margini orizzontali. */
-const Y_RANGE: Record<LakeArea, [number, number]> = {
+export const Y_RANGE: Record<LakeArea, [number, number]> = {
   far: [34, 40],
   water: [46, 74],
   near: [76, 86],
@@ -61,7 +61,7 @@ const frac = (n: number) => n - Math.floor(n);
 /**
  * Posizione sul lago in % della scena. Deterministica: dipende da id e index
  * (l'offset aureo da `index` allarga le lanterne ed evita sovrapposizioni).
- * `count` non serve qui: lo usa solo `lanternRow`.
+ * `count` resta nella firma per chi chiama, ma la posizione non ne dipende.
  */
 export function lanternSpot(id: string, index: number, _count: number, area: LakeArea): { x: number; y: number } {
   const u = frac(fnv1a(id) / 2 ** 32 + index * GOLDEN);
@@ -70,9 +70,3 @@ export function lanternSpot(id: string, index: number, _count: number, area: Lak
   return { x: X_MIN + u * (X_MAX - X_MIN), y: y0 + v * (y1 - y0) };
 }
 
-/** Disposizione in fila per `prefers-reduced-motion`: stessa altezza, da sinistra a destra. */
-export function lanternRow(index: number, count: number, area: LakeArea): { x: number; y: number } {
-  const [y0, y1] = Y_RANGE[area];
-  const t = count <= 1 ? 0.5 : index / (count - 1);
-  return { x: X_MIN + t * (X_MAX - X_MIN), y: (y0 + y1) / 2 };
-}

@@ -1,5 +1,5 @@
 import { describe, expect, test } from "vitest";
-import { lanternRow, lanternShape, lanternSize, lanternSpot, type LakeArea } from "./lake-layout";
+import { lanternShape, lanternSize, lanternSpot, type LakeArea } from "./lake-layout";
 
 const Y: Record<LakeArea, [number, number]> = { far: [34, 40], water: [46, 74], near: [76, 86] };
 
@@ -35,18 +35,6 @@ describe("lake-layout", () => {
         expect(x).toBeLessThanOrEqual(94);
         expect(y).toBeGreaterThanOrEqual(Y[area][0]);
         expect(y).toBeLessThanOrEqual(Y[area][1]);
-      }
-    }
-  });
-
-  test("in fila: stessa altezza, ordine da sinistra", () => {
-    for (const count of [1, 2, 7, 40]) {
-      const row = Array.from({ length: count }, (_, i) => lanternRow(i, count, "water"));
-      expect(new Set(row.map((p) => p.y)).size).toBe(1);
-      for (let i = 0; i < count; i++) {
-        expect(row[i].x).toBeGreaterThanOrEqual(6);
-        expect(row[i].x).toBeLessThanOrEqual(94);
-        if (i > 0) expect(row[i].x).toBeGreaterThan(row[i - 1].x);
       }
     }
   });

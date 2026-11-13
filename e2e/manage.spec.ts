@@ -274,7 +274,7 @@ test("il conto alla rovescia segue il viaggio nel tempo", async ({ browser }) =>
   await anna.getByLabel("La tua lanterna").fill("parte stasera");
   await anna.getByRole("button", { name: "Lascia la lanterna" }).click();
 
-  const countdown = anna.getByRole("region", { name: "Le tue lanterne" }).getByText(/^tra /);
+  const countdown = anna.getByText(/^tra /);
   await expect(countdown).toBeVisible();
   const before = await countdown.textContent();
   await anna.getByRole("button", { name: "+1 ora" }).click();

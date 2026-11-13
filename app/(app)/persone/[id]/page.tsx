@@ -3,7 +3,8 @@ import { notFound } from "next/navigation";
 import { ConnectionMenu } from "@/components/connection-menu";
 import { Countdown } from "@/components/countdown";
 import { LanternComposer } from "@/components/lantern-composer";
-import { ArrivedLantern, MemoryLantern, SentLantern } from "@/components/lantern-item";
+import { LakeScene } from "@/components/lake/lake-scene";
+import { MemoryLantern } from "@/components/lantern-item";
 import { getChannel } from "@/lib/access/lanterns";
 import { requireOnboardedUser } from "@/lib/auth/session";
 import { getRequestClock } from "@/lib/clock/request";
@@ -27,7 +28,7 @@ export default async function ChannelPage({ params }: PageProps<"/persone/[id]">
   const channel = await getChannel(db, { connectionId, userId: user.id, now });
   if (!channel.ok) notFound();
 
-  const { connection, sent, arrived, memories, partnerLeftNothing, nextDepartureAt } = channel.value;
+  const { connection, sent, arrived, memories, partnerLeftNothing, nextDepartureAt, lastArrivalAt } = channel.value;
   const { partner, status } = connection;
   const viewerTz = user.timezone ?? "UTC";
   const nextDeparture = sent
@@ -49,53 +50,29 @@ export default async function ChannelPage({ params }: PageProps<"/persone/[id]">
 
       {status === "ended" && <p>Questa connessione è chiusa.</p>}
 
-      {status !== "ended" && arrived.length > 0 && (
-        <Section title="Arrivate">
-          <ul className="space-y-3">
-            {arrived.map((lantern) => (
-              <ArrivedLantern
-                key={lantern.id}
-                lantern={lantern}
-                connectionId={connectionId}
-                viewerTz={viewerTz}
-                senderName={partner.name}
-              />
-            ))}
-          </ul>
-        </Section>
+      {status !== "ended" && (
+        <LakeScene
+          serverNow={now.toISOString()}
+          tz={viewerTz}
+          lastArrivalAt={lastArrivalAt?.toISOString() ?? null}
+          nextArrivalAt={connection.nextArrivalAt?.toISOString() ?? null}
+          me={{ name: user.name, color: user.color ?? "" }}
+          partner={{ name: partner.name, color: partner.color }}
+          sent={sent}
+          arrived={arrived}
+          partnerLeftNothing={partnerLeftNothing}
+          connectionId={connectionId}
+        />
       )}
 
-      {status !== "ended" && partnerLeftNothing && (
-        <p>Stasera l&apos;acqua è tranquilla: {partner.name} non ha lasciato lanterne.</p>
-      )}
-
-      {status !== "ended" && sent.length > 0 && (
-        <Section title="Le tue lanterne">
-          {nextDeparture && (
-            <div>
-              <p className="text-sm">
-                {formatDepartureLabel(nextDeparture, viewerTz, partner.timezone, partner.name, now)}
-              </p>
-              {/* La key lo rimonta a ogni nuovo orario del server, anche dopo un viaggio nel tempo. */}
-              <Countdown
-                key={now.toISOString()}
-                target={nextDeparture.toISOString()}
-                serverNow={now.toISOString()}
-              />
-            </div>
-          )}
-          <ul className="space-y-3">
-            {sent.map((lantern) => (
-              <SentLantern
-                key={lantern.id}
-                lantern={lantern}
-                connectionId={connectionId}
-                viewerTz={viewerTz}
-                partnerName={partner.name}
-              />
-            ))}
-          </ul>
-        </Section>
+      {status !== "ended" && nextDeparture && (
+        <div>
+          <p className="text-sm">
+            {formatDepartureLabel(nextDeparture, viewerTz, partner.timezone, partner.name, now)}
+          </p>
+          {/* La key lo rimonta a ogni nuovo orario del server, anche dopo un viaggio nel tempo. */}
+          <Countdown key={now.toISOString()} target={nextDeparture.toISOString()} serverNow={now.toISOString()} />
+        </div>
       )}
 
       {status === "active" && nextDepartureAt && (

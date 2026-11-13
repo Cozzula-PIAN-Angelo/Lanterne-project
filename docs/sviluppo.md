@@ -487,3 +487,41 @@ sempre lo stesso punto, dentro la fascia dell'area (lontano, acqua, vicino) e tr
 
 `getChannel` restituisce anche `lastArrivalAt`, l'ultima apertura nel fuso di chi guarda (lo stesso valore già usato
 per `partnerLeftNothing`), o `null` se la connessione non è attiva o non ha un orario.
+
+### Il lago
+
+La pagina del canale non è più un elenco: in cima c'è il lago, una scena alta 26rem che occupa tutta la larghezza
+del telefono. In alto c'è la riva dell'altra persona ("la riva di Giulia"), poi l'acqua e in basso la propria riva.
+I colori vengono da token CSS in `globals.css`, uno per ogni parte della scena e per ogni fase del cielo, e la scena
+li sceglie con `data-phase`. Il carattere di tutta l'app ora è Fraunces, con l'asse della dimensione ottica, e i
+colori di base sono quelli del lago di giorno: fondo `#e9e4d8` (la riva vicina, così di giorno la scena sfuma nella
+pagina) e testo `#26323a`. Con il fondo caldo il grigio dei testi secondari e il rosso degli errori non arrivavano più
+a 4,5:1, e sono stati scuriti (`#5b6670` e un mattone `#a8322a`).
+
+Le proprie lanterne sigillate stanno sulla propria riva, quelle già partite sulla riva lontana, quelle arrivate
+galleggiano sull'acqua e di notte hanno un riflesso. Ogni lanterna è un pulsante fermo di 32 × 32 px, anche quando il
+segno è il puntino di 7 px del pensiero: il galleggiare (`bob`), lo scivolare sull'acqua (`drift`) e l'arrivo dalla
+riva lontana (`arrive`) muovono solo il segno dentro il pulsante, così il punto da toccare non si sposta e Playwright
+può cliccarlo senza aspettare che smetta di muoversi. Toccando una lanterna si apre sotto la scena il pannello
+"Lanterna aperta" con lo stesso contenuto delle vecchie liste, e il focus va al pannello; ritoccandola si chiude.
+
+L'ora della scena viene da `useServerClock`: parte dall'ora del server, conta il tempo passato sul dispositivo, si
+aggiorna ogni 30 secondi e scatta esattamente al prossimo confine dato da `nextSkyChange`, dove chiama
+`router.refresh()`. Così, con la pagina aperta, all'orario il cielo si fa notte e le lanterne arrivano senza
+ricaricare. Nell'attesa della risposta del server la scena considera già cominciata la sera.
+
+Con `prefers-reduced-motion` le animazioni si spengono e ogni area diventa una fila ferma che va a capo, nella sua
+fascia. `lanternRow` del task precedente metteva tutte le lanterne di un'area su una sola riga assoluta: con molte
+lanterne i pulsanti si sovrapponevano e non si potevano toccare, per cui è stata tolta insieme al suo test.
+
+Gli e2e che cercavano un testo nelle sezioni "Arrivate" o "Le tue lanterne" ora aprono la lanterna con il nuovo
+helper `openLantern` e cercano nel pannello. Dove contavano i pulsanti "Elimina" di tutte le lanterne insieme, ora
+aprono ogni lanterna e controllano il pannello.
+
+**Controllo a occhio.** Con screenshot a 390 px (giorno, lanterne accese, tramonto, notte, mattina, notte con meno
+movimento) sono state corrette tre cose: il rettangolo dell'acqua spuntava sopra la riva lontana sul bordo sinistro, i
+riflessi venivano tagliati nelle file ferme (con meno movimento ora non ci sono) e il sole del tramonto è stato
+abbassato dietro la riva. Il bordo delle lanterne spente è un po' più scuro del mockup (`#6f6596` invece di
+`#8d82b0`) e le accese hanno un bordo scurito sui fondi chiari, perché altrimenti sulla riva di giorno restavano
+sotto 3:1. Il testo della scena sta solo sul cielo e sulla riva vicina, dove il rapporto minimo è 6,56:1 (cielo alto del crepuscolo);
+sulla riva lontana del tramonto sarebbe 4,04:1, e lì non c'è testo.

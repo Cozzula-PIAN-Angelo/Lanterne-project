@@ -1,4 +1,4 @@
-import { expect, test, type Browser, type Page } from "@playwright/test";
+import { expect, test, type Browser, type Locator, type Page } from "@playwright/test";
 import postgres from "postgres";
 
 // Con cacheComponents le pagine già visitate restano nel DOM, nascoste da <Activity>:
@@ -126,4 +126,21 @@ export async function setClockOffset(page: Page, offsetMs: number) {
 /** Per un afterEach: chiude i contesti aperti dal test, che altrimenti restano vivi per tutta la suite. */
 export async function closeContexts({ browser }: { browser: Browser }) {
   await Promise.all(browser.contexts().map((context) => context.close()));
+}
+
+/**
+ * Tocca una lanterna del lago e restituisce il pannello che si apre sotto la scena.
+ * Se la lanterna è già aperta non la ritocca, perché un secondo tocco la chiuderebbe.
+ */
+export async function openLantern(
+  page: Page,
+  list: "Le tue lanterne" | "Arrivate",
+  name: string | RegExp,
+  options?: { timeout?: number },
+): Promise<Locator> {
+  const button = page.getByRole("list", { name: list }).getByRole("button", { name });
+  await expect(button).toBeVisible(options);
+  if ((await button.getAttribute("aria-expanded")) !== "true") await button.click();
+  await expect(button).toHaveAttribute("aria-expanded", "true");
+  return page.getByRole("region", { name: "Lanterna aperta" });
 }
