@@ -541,3 +541,21 @@ di…" è salita al 18 % per lasciare spazio alla prima fila.
 Nella stessa revisione `useServerClock` misura lo scarto con il dispositivo una sola volta per ogni orario del
 server: una pagina rimostrata dalla cache rimonta gli effetti con il vecchio `serverNow`, e rimisurarlo lì riportava
 indietro l'orologio.
+
+## Piano 3, Task 4: il cielo reale, con la posizione
+
+Nelle Impostazioni, vicino alle notifiche, c'è l'interruttore "Usa la mia posizione per il cielo". Se il browser dà il
+permesso, la posizione viene arrotondata a un decimale (circa 10 km) e salvata in `localStorage` sotto
+`lanterne:sky-location`, in `lib/client/sky-location.ts`. Non va mai al server: nessuna richiesta la contiene, e il test
+e2e lo controlla guardando url e corpo di ogni richiesta del contesto. Se il permesso è negato si legge "Il browser non
+dà la posizione: il cielo segue l'orario di apertura.".
+
+`LakeScene` legge la posizione con `useSyncExternalStore` (snapshot del server `null`, quindi la prima resa è uguale
+sul server e sul client) e la passa a `skyPhase` e `nextSkyChange`. Ascolta l'evento `lanterne:sky-location-changed`,
+che parte dopo ogni salvataggio o cancellazione, e `storage` per le altre schede. Lo snapshot è tenuto in cache sul
+testo salvato, così resta lo stesso oggetto finché non cambia e non si entra in un ciclo di rese. Dati rotti, numeri
+fuori da ±90 / ±180 o `localStorage` che lancia valgono "nessuna posizione". All'uscita riuscita dall'account la
+posizione si cancella insieme alla coda dei vocali.
+
+L'interruttore resta disabilitato finché la pagina non è idratata: la resa del server lo mostra spento, e un tocco
+prima dell'idratazione si sarebbe perso.

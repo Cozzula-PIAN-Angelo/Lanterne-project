@@ -1,5 +1,7 @@
 import { expect, test, type Page } from "@playwright/test";
+import SunCalc from "suncalc";
 import { computeRevealAt } from "@/lib/time/lantern-times";
+import { localDateOf, localInstant } from "@/lib/time/reveal-time";
 import { closeContexts, connectPair, openLantern, resetAuthRateLimit, setClockOffset } from "./helpers";
 
 test.beforeEach(resetAuthRateLimit);
@@ -128,4 +130,54 @@ test("ogni lanterna ha un'etichetta leggibile", async ({ browser }) => {
   await expect(arrived.getByRole("button", { name: /^Vocale di Anna, / })).toBeVisible();
   await expect(arrived.getByRole("button", { name: /^Foto di Anna, / })).toBeVisible();
   await expect(arrived.getByRole("button", { name: /^Testo di Anna, / })).toBeVisible();
+});
+
+test("con la posizione il cielo segue il tramonto vero, e la posizione non lascia il telefono", async ({ browser }) => {
+  test.setTimeout(90_000);
+  const { anna } = await connectPair(browser, "tramonto");
+  const context = anna.context();
+
+  // Da qui in poi ogni richiesta di ogni pagina del contesto viene registrata.
+  const requests: string[] = [];
+  context.on("request", (request) => requests.push(`${request.url()} ${request.postData() ?? ""}`));
+  await context.grantPermissions(["geolocation"]);
+  await context.setGeolocation({ latitude: 41.9028, longitude: 12.4964 });
+
+  await anna.goto("/impostazioni");
+  // La posizione arriva dopo il tocco: si clicca e si aspetta il messaggio, senza pretendere lo stato subito.
+  await anna.getByLabel("Usa la mia posizione per il cielo").click();
+  await expect(anna.getByText("Fatto: ora il cielo segue il tramonto vero.")).toBeVisible();
+  expect(await anna.evaluate(() => localStorage.getItem("lanterne:sky-location"))).toBe('{"lat":41.9,"lng":12.5}');
+
+  // A metà tra il tramonto reale di Roma e l'apertura delle 21:30: senza posizione sarebbe ancora giorno.
+  const tz = "Europe/Rome";
+  const nextArrival = computeRevealAt(
+    { revealTime: "21:30", previousRevealTime: null, revealTimeChangedAt: null },
+    tz,
+    new Date(Date.now()),
+  );
+  const noon = localInstant(localDateOf(new Date(nextArrival.getTime() - MINUTE), tz), "12:00", tz);
+  const sunset = SunCalc.getTimes(noon, 41.9028, 12.4964).sunset;
+  const middle = (sunset.getTime() + nextArrival.getTime()) / 2;
+  await setClockOffset(anna, middle - Date.now());
+
+  const channel = await openChannel(anna, "Luca");
+  const lake = anna.getByRole("region", { name: "Il lago" });
+  await expect(lake).toHaveAttribute("data-phase", "dusk");
+
+  // Spenta l'opzione, la posizione sparisce e il cielo torna a quello senza.
+  await anna.goto("/impostazioni");
+  const toggle = anna.getByLabel("Usa la mia posizione per il cielo");
+  await expect(toggle).toBeChecked(); // dopo l'idratazione
+  await toggle.uncheck();
+  await expect(toggle).not.toBeChecked();
+  expect(await anna.evaluate(() => localStorage.getItem("lanterne:sky-location"))).toBeNull();
+  await anna.goto(channel);
+  await expect(lake).toHaveAttribute("data-phase", "day");
+
+  for (const request of requests) {
+    for (const coordinate of ["41.9", "12.5", "41.90", "12.49"]) {
+      expect(request, `una richiesta contiene ${coordinate}`).not.toContain(coordinate);
+    }
+  }
 });

@@ -4,6 +4,7 @@ import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { authClient } from "@/lib/auth/auth-client";
 import { outboxStore } from "@/lib/client/outbox-store";
+import { clearSkyLocation } from "@/lib/client/sky-location";
 import { dropPushSubscription } from "@/lib/client/push";
 
 export function SignOutButton({ userId }: { userId: string }) {
@@ -29,6 +30,7 @@ export function SignOutButton({ userId }: { userId: string }) {
     }
     // Solo a uscita riuscita: finché si resta dentro, i vocali possono ancora partire.
     await outboxStore.clear(userId);
+    clearSkyLocation();
     // Ricarica vera: le pagine già visitate restano in memoria e non devono sopravvivere all'uscita.
     // eslint-disable-next-line @next/next/no-location-assign-relative-destination
     window.location.assign("/accedi");

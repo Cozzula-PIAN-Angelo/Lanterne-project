@@ -4,8 +4,9 @@ import { useEffect, useId, useRef, useState, useSyncExternalStore, type CSSPrope
 import { ArrivedLantern, SentLantern } from "@/components/lantern-item";
 import type { LanternView } from "@/lib/access/lanterns";
 import { lanternLabel } from "@/lib/lanterns/labels";
+import { parseSkyLocation, readSkyLocationRaw, SKY_LOCATION_CHANGED } from "@/lib/client/sky-location";
 import { lanternSpot, Y_RANGE, type LakeArea } from "@/lib/lanterns/lake-layout";
-import { isLanternLit, nextSkyChange, skyPhase, type SkyInput, type SkyPhase } from "@/lib/time/sky";
+import { isLanternLit, nextSkyChange, skyPhase, type SkyInput, type SkyLocation, type SkyPhase } from "@/lib/time/sky";
 import { LakeLantern } from "./lake-lantern";
 import { useServerClock } from "./use-server-clock";
 
@@ -30,6 +31,28 @@ function subscribeReducedMotion(onChange: () => void) {
   const query = window.matchMedia(REDUCED_MOTION);
   query.addEventListener("change", onChange);
   return () => query.removeEventListener("change", onChange);
+}
+
+function subscribeSkyLocation(onChange: () => void) {
+  window.addEventListener(SKY_LOCATION_CHANGED, onChange);
+  window.addEventListener("storage", onChange);
+  return () => {
+    window.removeEventListener(SKY_LOCATION_CHANGED, onChange);
+    window.removeEventListener("storage", onChange);
+  };
+}
+
+// Lo snapshot deve restare lo stesso oggetto finché il testo salvato non cambia.
+let cachedRaw: string | null | undefined;
+let cachedLocation: SkyLocation | null = null;
+
+function readLocationSnapshot(): SkyLocation | null {
+  const raw = readSkyLocationRaw();
+  if (raw !== cachedRaw) {
+    cachedRaw = raw;
+    cachedLocation = parseSkyLocation(raw);
+  }
+  return cachedLocation;
 }
 
 /** Il sole o la luna: niente al crepuscolo, quando il sole è appena sceso. */
@@ -87,13 +110,16 @@ export function LakeScene({
     () => false,
   );
 
+  // La posizione sta solo sul dispositivo: sul server e alla prima resa non c'è.
+  const location = useSyncExternalStore(subscribeSkyLocation, readLocationSnapshot, () => null);
+
   const last = lastArrivalAt ? new Date(lastArrivalAt) : null;
   const next = nextArrivalAt ? new Date(nextArrivalAt) : null;
   // Passata l'apertura, la sera comincia subito, senza aspettare i dati nuovi dal server.
   const skyAt = (now: Date): SkyInput =>
     next && now.getTime() >= next.getTime()
-      ? { now, tz, lastArrivalAt: next, nextArrivalAt: null }
-      : { now, tz, lastArrivalAt: last, nextArrivalAt: next };
+      ? { now, tz, lastArrivalAt: next, nextArrivalAt: null, location }
+      : { now, tz, lastArrivalAt: last, nextArrivalAt: next, location };
   const departures = sent.filter((l) => l.sealed).map((l) => l.revealAt);
   const now = useServerClock(serverNow, (at) => nextSkyChange(skyAt(at), departures));
   const phase = skyPhase(skyAt(now));
