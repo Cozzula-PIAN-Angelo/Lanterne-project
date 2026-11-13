@@ -628,3 +628,21 @@ Cinque difetti lasciati dal Piano 2, ognuno corretto partendo da un test rosso.
 
 Il testo della conferma di blocco ora dice che le lanterne non ancora arrivate vengono eliminate in entrambe le
 direzioni, oltre a quelle già conservate dall'altra persona.
+
+## Piano 3, Task 8: CI con GitHub Actions
+
+`.github/workflows/ci.yml` gira su ogni push e pull request verso `main`, in un solo job su `ubuntu-latest` (30 minuti
+al massimo). Installa pnpm dalla versione di `packageManager` e Node LTS con la cache di pnpm, accende i servizi con
+`docker compose up -d --wait`, poi `pnpm run setup` (`.env`, chiavi VAPID, bucket, migrazioni, dati demo), lint,
+typecheck, test unitari, di integrazione ed e2e con Chromium. Se qualcosa fallisce carica `test-results/` come artifact.
+
+- Il servizio `postgres` ha un healthcheck `pg_isready` su TCP (`-h 127.0.0.1`): durante lo script iniziale il server
+  temporaneo ascolta solo sul socket, quindi senza `-h` la compose lo darebbe per pronto prima che esistano
+  `lanterne_test` e `lanterne_e2e`.
+- SeaweedFS e Mailpit non hanno healthcheck, e `ensureBucket` non ritenta: un passo del workflow attende con `curl` che
+  le porte 9000 e 8025 rispondano prima del setup.
+- `scripts/setup.ts` non chiede nulla e non dipende da Windows, quindi non è cambiato: i valori di `.env.example`
+  coincidono già con i servizi della compose.
+- La pubblicazione su GitHub e il primo run verde sono rimandati a fine piano, con l'utente presente. Il workflow è
+  controllato solo con `@action-validator/cli`; la compose non si è potuta provare qui (niente Docker).
+- Nel README c'è il badge dello stato della CI.

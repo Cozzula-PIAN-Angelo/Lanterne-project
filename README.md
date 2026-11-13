@@ -1,5 +1,7 @@
 # Lanterne
 
+[![CI](https://github.com/Cozzula-PIAN-Angelo/Lanterne-project/actions/workflows/ci.yml/badge.svg)](https://github.com/Cozzula-PIAN-Angelo/Lanterne-project/actions/workflows/ci.yml)
+
 Una PWA per restare vicini a poche persone: lasci una lanterna durante il giorno e arriva alla sera,
 all'orario che avete concordato, nell'ora locale di chi la riceve.
 
