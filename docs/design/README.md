@@ -16,3 +16,9 @@
 ## Foto delle montagne
 
 `montagne-bled.png` è un ritaglio, con il cielo tolto, di [View towards Lake Bled and Julian Alps from Dobrca.jpg](https://commons.wikimedia.org/wiki/File:View_towards_Lake_Bled_and_Julian_Alps_from_Dobrca.jpg) di Ajznponar, Wikimedia Commons, rilasciata in **CC0 1.0** (pubblico dominio). La licenza non chiede attribuzione; la citiamo per correttezza.
+
+## Le altre bozze (16 novembre)
+
+- `lago-casa.html`: Ricordi, Invita e Impostazioni nel tema del lago; la home di questa bozza è superata da `lago-scena.html`.
+- `calore.html`: le idee per un'app calda e umana, a confronto; la quinta è la via di mezzo scelta (pontile e falò).
+- `lago-scena.html`: il prototipo scelto per la home e il canale. Pontile in prospettiva, falò, nomi sulla riva lontana, icone Ricordi e Impostazioni in alto, invito attorno alla lanterna, viaggio della vista nel canale, lanterne in partenza di giorno e in arrivo di notte.

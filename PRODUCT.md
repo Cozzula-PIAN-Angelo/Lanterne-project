@@ -47,11 +47,16 @@ Asynchronous, time-shifted closeness: content is sealed until an agreed local cl
 - Voice: calm, plain Italian, never blaming, no pressure, no guilt-inducing counters or streaks.
 - Not binding for the visual redesign (confirmed by the user on 2026-11-13): the current lantern encoding (colour = person, shape = type, size = length), the 8 personal colours, and the name.
 - Signature, identical in every theme (user, 2026-11-13): the lake is the meeting point between two people, the place every message must cross to reach the other. Two elements carry it: the composition of the lake (the other person's shore far, your own near, the water between) and the moment of arrival (at the agreed time the scene turns to evening and the lanterns cross the lake from the other shore). Lantern drawing, typeface and palette may change with the theme.
+- Warm and human, always (user, 2026-11-16): every screen, in every hour and every theme, should feel warm and inhabited, never clinical. The sky and the water may be cold and real (a winter morning is blue), but what the person touches stays warm: warm neutrals instead of grey or icy surfaces, warm-dark evenings instead of navy, lantern light as the accent, places with a human trace (jetties, lit windows, a lantern you light to invite someone) instead of map pins or boxes, names written in the scene.
 
 ## Themes
 
 - The user chooses a theme in Settings; the theme covers the whole app (lake, home, invites, Memories, settings), not only the channel.
 - Plan agreed on 2026-11-13: one main theme built in full now, with the app structured for themes (shared signature in the scene code, theme as tokens plus a material "skin" of the lake). A second theme comes later.
+- How the main theme reaches the other pages (user, 2026-11-16):
+  - Home is one lake with many shores: a single panorama where each person is a light on the far shore with their arrival time; tapping a light opens that person's channel.
+  - Pages outside the lake (home chrome, Memories, settings, invites) follow the sky: light with water and mist tones by day, dark like the night print in the evening and at night, on the same clock as the scene.
+  - Memories are lanterns resting on your own shore: the kept lanterns lie on the pebbles and you tap one to listen again.
 
 ## Evidence on Hand
 

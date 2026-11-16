@@ -647,3 +647,43 @@ typecheck, test unitari, di integrazione ed e2e con Chromium. Se qualcosa fallis
 - La pubblicazione su GitHub e il primo run verde sono rimandati a fine piano, con l'utente presente. Il workflow è
   controllato solo con `@action-validator/cli`; la compose non si è potuta provare qui (niente Docker).
 - Nel README c'è il badge dello stato della CI.
+
+## Piano 3: il passaggio di design
+
+Provando l'app il 13 novembre è emerso che funzionava, ma che la grafica andava rifatta. Prima del README e delle
+schermate per il portfolio c'è stato quindi un passaggio di design, fatto con bozze HTML autonome in `docs/design/`:
+si aprono nel browser e un cursore fa scorrere un giorno intero. Non sono codice dell'app: sono il riferimento da cui
+costruirla.
+
+- `lago-vivo.html`: la scena del canale, approvata il 13 novembre. Cielo con sole e luna veri, montagne da una foto
+  CC0 ricolorata secondo l'ora, colline, paese, acqua che riflette il cielo, riva di ciottoli e canneti.
+- `lago-casa.html`: come il tema si estende alle altre pagine. I Ricordi sono lanterne posate sulla tua riva; inviti e
+  impostazioni seguono il colore del cielo, chiari di giorno e scuri la sera.
+- `calore.html`: le idee per rendere l'app "calda e umana", messe a confronto (falò, pontile di casa, nomi scritti a
+  mano, rive abitate) fino alla via di mezzo scelta: il tuo pontile e il falò accanto.
+- `lago-scena.html`: il prototipo della home e del canale, la direzione scelta.
+
+Le scelte principali, registrate anche in `PRODUCT.md`:
+
+- **Una sola scena, tante rive.** Sulla home ogni persona è un pontile con la sua lanterna sulla riva lontana, con il
+  nome scritto sopra in una leggera foschia. Il tuo pontile è in primo piano, in prospettiva vera: le assi stanno di
+  traverso all'asse del pontile e hanno un loro punto di fuga, i pali continuano sott'acqua.
+- **Calda e umana, sempre.** Il cielo e l'acqua restano veri, ma ciò che si tocca è caldo: il falò (di giorno solo
+  braci, la sera fiamme a particelle e braci che salgono a spirale), il legno illuminato dal fuoco, la lanterna
+  dell'invito con la scritta che le volteggia attorno e di notte si accende.
+- **La scena è l'interfaccia, dove è istintivo.** Le prove hanno mostrato che gli oggetti sul pontile come comandi non
+  si capiscono: Ricordi e Impostazioni sono tornati icone con il nome in alto, che aprono menù di carta. Restano nella
+  scena le persone (tocchi un pontile e la vista attraversa il lago fino alla sua riva) e l'invito.
+- **Le lanterne vivono nel canale.** Prima dell'orario di una persona, nel suo canale galleggiano le lanterne che le
+  stai mandando; all'orario partono, mentre le sue arrivano e si incrociano a metà lago. Di notte si aprono toccandole:
+  un foglio di carta con il contenuto, le reazioni e "Conserva".
+- **Pensata per il telefono.** Niente passaggio del mouse: ogni effetto risponde al tocco e alla tastiera, con le
+  animazioni ferme quando il sistema chiede meno movimento.
+
+Ogni bozza è stata controllata con Playwright, anche emulando un Pixel 7 con tocchi veri, e con il rilevatore di
+impeccable. La bozza ingrandisce la scena già disegnata per entrare nel canale: nell'app la scena del canale andrà
+disegnata direttamente a quella distanza.
+
+**Stato:** passaggio di design chiuso per la home e il canale. Prossimo passo: pianificare la costruzione della scena
+nell'app (sostituisce lo strato visivo del Task 3), poi il README con le schermate, la prova sul telefono e la
+revisione finale.
