@@ -1,19 +1,24 @@
 "use client";
 
-import { useRouter } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
-import { flushOutbox, markForRetry, retryDelayMs, type OutboxItem } from "@/lib/client/outbox";
+import { flushOutbox, markForRetry, outboxRowLabel, retryDelayMs, type OutboxItem } from "@/lib/client/outbox";
 import { isHeldInMemory, OUTBOX_CHANGED, outboxStore } from "@/lib/client/outbox-store";
 import { uploadMedia } from "@/lib/client/upload-media";
 
-const KIND_LABEL = { audio: "Vocale", photo: "Foto" } as const;
-
 export function OutboxPanel({ userId }: { userId: string }) {
   const router = useRouter();
+  const pathname = usePathname();
   const [items, setItems] = useState<OutboxItem[]>([]);
   const [sending, setSending] = useState(false);
-  const [late, setLate] = useState(false);
+  // Chi era in attesa e partirà la sera dopo, e in quale pagina: cambiando pagina l'avviso sparisce.
+  const [late, setLate] = useState<{ name?: string; path: string } | null>(null);
+  // Gli elementi che dopo un giro sono rimasti in attesa: la rete c'è, ma il tentativo è fallito.
+  const [failed, setFailed] = useState<ReadonlySet<string>>(new Set());
+  const [online, setOnline] = useState(true);
+  // Cambiando pagina l'avviso va via per sempre: tornare indietro non lo rimostra.
+  if (late && late.path !== pathname) setLate(null);
   const running = useRef(false);
   const again = useRef(false);
   const attempts = useRef(0);
@@ -31,10 +36,13 @@ export function OutboxPanel({ userId }: { userId: string }) {
         again.current = false;
         const before = await outboxStore.list(userId);
         setItems(before);
-        const { sent } = await flushOutbox(outboxStore, userId, uploadMedia);
-        if (sent.length > 0) setLate(sent.some((item) => item.late));
+        const { sent } = await flushOutbox(outboxStore, userId, uploadMedia, Date.now());
+        const lateOne = sent.find((item) => item.late);
+        if (lateOne) setLate({ name: before.find((item) => item.id === lateOne.id)?.partnerName, path: window.location.pathname });
+        else if (sent.length > 0) setLate(null);
         // Anche quando ha inviato un'altra scheda: questa pagina deve mostrare la lanterna partita.
         const after = await outboxStore.list(userId);
+        setFailed(new Set(after.filter((item) => item.status === "waiting").map((item) => item.id)));
         if (sent.length > 0 || after.length < before.length) {
           attempts.current = 0;
           router.refresh();
@@ -46,6 +54,17 @@ export function OutboxPanel({ userId }: { userId: string }) {
       setItems(await outboxStore.list(userId));
     }
   }, [router, userId]);
+
+  useEffect(() => {
+    const sync = () => setOnline(navigator.onLine !== false);
+    sync();
+    window.addEventListener("online", sync);
+    window.addEventListener("offline", sync);
+    return () => {
+      window.removeEventListener("online", sync);
+      window.removeEventListener("offline", sync);
+    };
+  }, []);
 
   useEffect(() => {
     const start = () => void run();
@@ -92,7 +111,7 @@ export function OutboxPanel({ userId }: { userId: string }) {
     <>
       {late && (
         <p role="status" className="mb-4 text-sm">
-          Era in attesa di rete: partirà la sera dopo.
+          {late.name ? `La lanterna per ${late.name}` : "La lanterna"} era in attesa di rete: partirà la sera dopo.
         </p>
       )}
       {items.length > 0 && (
@@ -109,8 +128,7 @@ export function OutboxPanel({ userId }: { userId: string }) {
             {items.map((item) => (
               <li key={item.id} className="space-y-1">
                 <p className="text-sm">
-                  {KIND_LABEL[item.type]}
-                  {item.status === "waiting" && (sending ? ": invio in corso…" : `: in attesa di rete`)}
+                  {outboxRowLabel(item, { sending, online, failedOnce: failed.has(item.id) })}
                 </p>
                 {item.status === "rejected" && (
                   <p role="alert" className="text-sm text-destructive">

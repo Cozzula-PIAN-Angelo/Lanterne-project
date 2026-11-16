@@ -462,3 +462,228 @@ ripetuta con `pnpm build` e `pnpm start` sullo stesso telefono. Il vocale regist
 26 secondi dopo il ritorno della rete senza toccare l'app, e arriverà all'orario previsto. Il ritardo corrisponde ai
 tentativi automatici della coda: il primo è partito probabilmente quando il Wi-Fi era tornato ma `adb reverse` non era
 ancora attivo. Anche in produzione, quindi, l'invio al ritorno della rete parte da solo.
+
+## Piano 3
+
+### Le fasi del cielo
+
+`lib/time/sky.ts` decide il colore del lago a partire dall'ora e basta. `skyPhase` restituisce `day`, `sunset`, `dusk`
+o `night`: è notte dall'apertura fino alle 06:00 locali, poi si guarda l'apertura successiva. Senza una posizione il
+tramonto comincia un'ora prima dell'apertura e non c'è crepuscolo. Con una posizione, `suncalc` dà l'inizio dell'ora
+dorata (tramonto) e il tramonto del sole (crepuscolo) a mezzogiorno locale del giorno dell'apertura. Se quei due
+istanti non esistono (sole di mezzanotte a Tromsø) o il sole tramonta dopo l'apertura, si torna alle fasi senza
+posizione, e così l'apertura vince sempre. `isLanternLit` accende una propria lanterna un'ora prima della partenza e
+`nextSkyChange` dà il prossimo istante in cui la scena deve ricalcolarsi.
+
+### I dati del lago
+
+`lib/lanterns/lake-layout.ts` contiene le funzioni pure che dicono dove e come disegnare ogni lanterna. La forma
+dipende dal tipo (vocale tondo, foto quadrata, testo ovale, pensiero puntino). La dimensione cresce in modo lineare con
+la lunghezza: il vocale va da 14 a 26 px (da 1 a 600 secondi), il testo da 12 a 22 px di larghezza (da 1 a 1000
+caratteri) ed è alto la metà, sempre arrotondata all'intero. La posizione `lanternSpot` nasce da un hash FNV-1a
+dell'id, a cui si somma un passo aureo legato all'indice per non far sovrapporre le lanterne: stessi id e indice danno
+sempre lo stesso punto, dentro la fascia dell'area (lontano, acqua, vicino) e tra il 6 e il 94 % in orizzontale.
+`lanternRow` mette tutte le lanterne in fila alla stessa altezza, per chi preferisce meno movimento.
+
+`getChannel` restituisce anche `lastArrivalAt`, l'ultima apertura nel fuso di chi guarda (lo stesso valore già usato
+per `partnerLeftNothing`), o `null` se la connessione non è attiva o non ha un orario.
+
+### Il lago
+
+La pagina del canale non è più un elenco: in cima c'è il lago, una scena alta 26rem che occupa tutta la larghezza
+del telefono. In alto c'è la riva dell'altra persona ("la riva di Giulia"), poi l'acqua e in basso la propria riva.
+I colori vengono da token CSS in `globals.css`, uno per ogni parte della scena e per ogni fase del cielo, e la scena
+li sceglie con `data-phase`. Il carattere di tutta l'app ora è Fraunces, con l'asse della dimensione ottica, e i
+colori di base sono quelli del lago di giorno: fondo `#e9e4d8` (la riva vicina, così di giorno la scena sfuma nella
+pagina) e testo `#26323a`. Con il fondo caldo il grigio dei testi secondari e il rosso degli errori non arrivavano più
+a 4,5:1, e sono stati scuriti (`#5b6670` e un mattone `#a8322a`).
+
+Le proprie lanterne sigillate stanno sulla propria riva, quelle già partite sulla riva lontana, quelle arrivate
+galleggiano sull'acqua e di notte hanno un riflesso. Ogni lanterna è un pulsante fermo di 32 × 32 px, anche quando il
+segno è il puntino di 7 px del pensiero: il galleggiare (`bob`), lo scivolare sull'acqua (`drift`) e l'arrivo dalla
+riva lontana (`arrive`) muovono solo il segno dentro il pulsante, così il punto da toccare non si sposta e Playwright
+può cliccarlo senza aspettare che smetta di muoversi. Toccando una lanterna si apre sotto la scena il pannello
+"Lanterna aperta" con lo stesso contenuto delle vecchie liste, e il focus va al pannello; ritoccandola si chiude.
+
+L'ora della scena viene da `useServerClock`: parte dall'ora del server, conta il tempo passato sul dispositivo, si
+aggiorna ogni 30 secondi e scatta esattamente al prossimo confine dato da `nextSkyChange`, dove chiama
+`router.refresh()`. Così, con la pagina aperta, all'orario il cielo si fa notte e le lanterne arrivano senza
+ricaricare. Nell'attesa della risposta del server la scena considera già cominciata la sera.
+
+Con `prefers-reduced-motion` le animazioni si spengono e ogni area diventa una fila ferma che va a capo, nella sua
+fascia. `lanternRow` del task precedente metteva tutte le lanterne di un'area su una sola riga assoluta: con molte
+lanterne i pulsanti si sovrapponevano e non si potevano toccare, per cui è stata tolta insieme al suo test.
+
+Gli e2e che cercavano un testo nelle sezioni "Arrivate" o "Le tue lanterne" ora aprono la lanterna con il nuovo
+helper `openLantern` e cercano nel pannello. Dove contavano i pulsanti "Elimina" di tutte le lanterne insieme, ora
+aprono ogni lanterna e controllano il pannello.
+
+**Controllo a occhio.** Con screenshot a 390 px (giorno, lanterne accese, tramonto, notte, mattina, notte con meno
+movimento) sono state corrette tre cose: il rettangolo dell'acqua spuntava sopra la riva lontana sul bordo sinistro, i
+riflessi venivano tagliati nelle file ferme (con meno movimento ora non ci sono) e il sole del tramonto è stato
+abbassato dietro la riva. Il bordo delle lanterne spente è un po' più scuro del mockup (`#6f6596` invece di
+`#8d82b0`) e le accese hanno un bordo scurito sui fondi chiari, perché altrimenti sulla riva di giorno restavano
+sotto 3:1. Il testo della scena sta solo sul cielo e sulla riva vicina, dove il rapporto minimo è 6,56:1 (cielo alto del crepuscolo);
+sulla riva lontana del tramonto sarebbe 4,04:1, e lì non c'è testo.
+
+**Revisione: posti fissi sul lago.** La revisione ha trovato che con `lanternSpot` basata solo sull'hash dell'id le
+lanterne si coprivano spesso (con cinque lanterne sulla riva lontana, in più di metà dei casi un pulsante copriva il
+centro di un altro), e un tocco poteva aprire la lanterna sbagliata, anche nei test. Ora ogni area ha dei posti fissi,
+in file sfalsate di 10 e 9 colonne a 33 px l'una dall'altra, e la lanterna numero `index` prende un posto scelto con un
+passo primo con il numero dei posti, così le prime finiscono lontane tra loro e aggiungerne una non sposta le altre.
+Dall'id resta solo uno scarto orizzontale di ±2 px. Le fasce sono cambiate: riva lontana dal 30 al 38 %, acqua dal 50
+al 66 %, riva vicina dal 79 all'87 %. Con la scena di riferimento di 390 × 416 px i centri della stessa area distano
+almeno 32 px finché ci stanno (19 lanterne per riva, 29 sull'acqua) e tra un'area e l'altra restano almeno 16 px tra i
+bordi dei pulsanti. Oltre, l'area passa a file fitte a 16,6 px con le colonne ristrette: i pulsanti si toccano, ma il
+centro di ognuno resta scoperto fino a 63 lanterne per riva. Sono tutte garanzie dei test unitari. La scritta "la riva
+di…" è salita al 18 % per lasciare spazio alla prima fila.
+
+Nella stessa revisione `useServerClock` misura lo scarto con il dispositivo una sola volta per ogni orario del
+server: una pagina rimostrata dalla cache rimonta gli effetti con il vecchio `serverNow`, e rimisurarlo lì riportava
+indietro l'orologio.
+
+## Piano 3, Task 4: il cielo reale, con la posizione
+
+Nelle Impostazioni, vicino alle notifiche, c'è l'interruttore "Usa la mia posizione per il cielo". Se il browser dà il
+permesso, la posizione viene arrotondata a un decimale (circa 10 km) e salvata in `localStorage` sotto
+`lanterne:sky-location`, in `lib/client/sky-location.ts`. Non va mai al server: nessuna richiesta la contiene, e il test
+e2e lo controlla guardando url e corpo di ogni richiesta del contesto. Se il permesso è negato si legge "Il browser non
+dà la posizione: il cielo segue l'orario di apertura.".
+
+`LakeScene` legge la posizione con `useSyncExternalStore` (snapshot del server `null`, quindi la prima resa è uguale
+sul server e sul client) e la passa a `skyPhase` e `nextSkyChange`. Ascolta l'evento `lanterne:sky-location-changed`,
+che parte dopo ogni salvataggio o cancellazione, e `storage` per le altre schede. Lo snapshot è tenuto in cache sul
+testo salvato, così resta lo stesso oggetto finché non cambia e non si entra in un ciclo di rese. Dati rotti, numeri
+fuori da ±90 / ±180 o `localStorage` che lancia valgono "nessuna posizione". All'uscita riuscita dall'account la
+posizione si cancella insieme alla coda dei vocali.
+
+Se `localStorage` rifiuta la scrittura (navigazione privata), `saveSkyLocation` risponde `false` e l'interruttore lo dice
+invece di dare una falsa conferma. Anche l'eliminazione dell'account cancella la posizione dal dispositivo.
+
+L'interruttore resta disabilitato finché la pagina non è idratata: la resa del server lo mostra spento, e un tocco
+prima dell'idratazione si sarebbe perso.
+
+## Piano 3, Task 5: i Ricordi
+
+I ricordi hanno una pagina propria, `/persone/[id]/ricordi`, con il titolo "Ricordi con {nome}". `getMemories` in
+`lib/access/lanterns.ts` restituisce solo le lanterne conservate da chi guarda, raggruppate per sera dalla più
+recente. La sera è il giorno locale di `revealAt` meno un minuto nel fuso di chi guarda (letto dall'utente dentro
+`getMemories`), così un arrivo a mezzanotte appartiene alla sera prima. Funziona anche a connessione chiusa; per un
+estraneo risponde `not_found` come `getChannel`.
+
+Ogni sera ha il titolo con la data in lettere ("2 novembre"). Ogni ricordo mostra il contenuto, l'ora di invio, l'ora
+d'arrivo e la reazione data. Senza ricordi si legge "Qui finiscono le lanterne che conservi.". Il canale non elenca
+più i ricordi: mostra il link "Ricordi (n)" solo se n > 0. Aprire `/persone/[id]` di una connessione chiusa
+reindirizza ai Ricordi, e la home porta lì le "Connessioni chiuse".
+
+## Piano 3, Task 11: "Fai arrivare adesso"
+
+Nel canale, solo con `NODE_ENV=development` e a connessione attiva, il pulsante "Fai arrivare adesso" porta a ora
+`revealAt` di tutte le lanterne `ready` ancora in attesa, in entrambe le direzioni (`arriveNow` in `lib/access/dev.ts`,
+in una sola transazione). `expiresAt` si ricalcola con il fuso del destinatario e `notifiedAt` resta nullo. A
+differenza del Viaggio nel tempo, che sposta solo l'orologio delle pagine, questo cambia il database: il worker, che
+segue l'ora reale, notifica al giro successivo. L'azione `devArriveNowAction` rifiuta fuori dallo sviluppo prima di
+toccare il database (il controllo è `canArriveNow`, testato a parte perché importare un'azione "use server" in
+vitest è scomodo) e usa `systemClock`, non l'ora del cookie. Per un estraneo o una connessione non attiva risponde
+`not_found`.
+
+## Piano 3, Task 6: Privacy e "Se stai male"
+
+Due pagine pubbliche, fuori da `(app)`: `/privacy` e `/se-stai-male`. Si leggono senza account. Il componente
+`InfoFooter` porta ai due link in fondo a `/accedi` e alle Impostazioni. La pagina Privacy dice cosa viene salvato,
+per quanto, chi lo vede, che la posizione resta sul telefono, che non ci sono analisi di terze parti, che le foto
+perdono i metadati e che eliminando l'account si cancella tutto. Dice anche che il progetto è dimostrativo e non ancora
+online, e che non è un'informativa legale completa.
+
+Numeri e orari di "Se stai male" sono stati verificati dal controller il 2026-11-13 su `telefonoamico.it` (home e
+pagina "Come contattarci"):
+
+- Telefono Amico Italia: 02 2327 2327, tutti i giorni, 24 ore su 24. Il servizio è gratuito; il costo della chiamata
+  dipende dall'operatore. Link `tel:+390223272327`.
+- WhatsApp Amico: 324 011 72 52, tutti i giorni dalle 18 alle 21. Link `https://wa.me/393240117252`.
+- Il sito stesso indica il 112 o il 118 in caso di pericolo imminente; la pagina usa il 112 (`tel:112`).
+- `findahelpline.com` raccoglie i servizi di ascolto per paese.
+
+Se un numero cambia, va riverificato sul sito ufficiale e la data aggiornata qui.
+
+## Piano 3, Task 7: i minori del Piano 2 e il testo del blocco
+
+Cinque difetti lasciati dal Piano 2, ognuno corretto partendo da un test rosso.
+
+- Uscita fallita: `signOutDevice` (`lib/client/sign-out.ts`) toglie prima la riga sul server, che richiede la sessione,
+  ma la sottoscrizione resta nel browser. Se l'uscita fallisce la risalva con `savePushAction`, così le notifiche non
+  restano spente; se riesce fa `unsubscribe` e svuota coda e posizione del cielo. `dropPushSubscription` resta per il
+  pulsante delle notifiche e per l'eliminazione dell'account.
+  Se `signOut` lancia (rete assente) vale come fallita e la sottoscrizione si ripristina; se la pulizia locale lancia
+  dopo un'uscita riuscita, l'uscita finisce lo stesso e si passa a `/accedi`.
+- Limite di età della coda: ogni elemento porta `queuedAt`. Oltre 24 ore (`OUTBOX_MAX_AGE_MS`) non parte più e diventa
+  `rejected` con un messaggio chiaro. Gli elementi salvati prima di questa modifica non hanno `queuedAt` e contano come
+  appena accodati. `flushOutbox` riceve l'ora come quarto parametro.
+- Righe senza destinatario: `outboxRowLabel` costruisce il testo ("Vocale per Giulia: in attesa di rete") e l'avviso
+  di ritardo nomina la persona. L'avviso sparisce al primo cambio di pagina e non ricompare tornando indietro.
+- "In attesa di rete" a rete funzionante: se il browser è online e l'elemento è rimasto in attesa dopo un giro, la riga
+  dice "nuovo tentativo tra poco".
+- Server Action senza timeout: `withTimeout` (30 secondi, `ACTION_TIMEOUT_MS`) attorno a richiesta e conferma; allo
+  scadere l'esito è `network`, e la conferma si può ripetere perché è idempotente.
+
+Il testo della conferma di blocco ora dice che le lanterne non ancora arrivate vengono eliminate in entrambe le
+direzioni, oltre a quelle già conservate dall'altra persona.
+
+## Piano 3, Task 8: CI con GitHub Actions
+
+`.github/workflows/ci.yml` gira sui push a `main` e a `piano-*`, sulle pull request verso `main` e a mano
+(`workflow_dispatch`), con permessi in sola lettura, in un solo job su `ubuntu-latest` (30 minuti
+al massimo). Installa pnpm dalla versione di `packageManager` e Node LTS con la cache di pnpm, accende i servizi con
+`docker compose up -d --wait`, poi `pnpm run setup` (`.env`, chiavi VAPID, bucket, migrazioni, dati demo), lint,
+typecheck, test unitari, di integrazione ed e2e con Chromium. Se qualcosa fallisce carica `test-results/` come artifact e stampa gli ultimi log dei servizi.
+
+- Il servizio `postgres` ha un healthcheck `pg_isready` su TCP (`-h 127.0.0.1`): durante lo script iniziale il server
+  temporaneo ascolta solo sul socket, quindi senza `-h` la compose lo darebbe per pronto prima che esistano
+  `lanterne_test` e `lanterne_e2e`.
+- SeaweedFS e Mailpit non hanno healthcheck, e `ensureBucket` non ritenta: un passo del workflow attende con `curl` che
+  le porte 9000 e 8025 rispondano prima del setup.
+- `scripts/setup.ts` non chiede nulla e non dipende da Windows, quindi non è cambiato: i valori di `.env.example`
+  coincidono già con i servizi della compose.
+- La pubblicazione su GitHub e il primo run verde sono rimandati a fine piano, con l'utente presente. Il workflow è
+  controllato solo con `@action-validator/cli`; la compose non si è potuta provare qui (niente Docker).
+- Nel README c'è il badge dello stato della CI.
+
+## Piano 3: il passaggio di design
+
+Provando l'app il 13 novembre è emerso che funzionava, ma che la grafica andava rifatta. Prima del README e delle
+schermate per il portfolio c'è stato quindi un passaggio di design, fatto con bozze HTML autonome in `docs/design/`:
+si aprono nel browser e un cursore fa scorrere un giorno intero. Non sono codice dell'app: sono il riferimento da cui
+costruirla.
+
+- `lago-vivo.html`: la scena del canale, approvata il 13 novembre. Cielo con sole e luna veri, montagne da una foto
+  CC0 ricolorata secondo l'ora, colline, paese, acqua che riflette il cielo, riva di ciottoli e canneti.
+- `lago-casa.html`: come il tema si estende alle altre pagine. I Ricordi sono lanterne posate sulla tua riva; inviti e
+  impostazioni seguono il colore del cielo, chiari di giorno e scuri la sera.
+- `calore.html`: le idee per rendere l'app "calda e umana", messe a confronto (falò, pontile di casa, nomi scritti a
+  mano, rive abitate) fino alla via di mezzo scelta: il tuo pontile e il falò accanto.
+- `lago-scena.html`: il prototipo della home e del canale, la direzione scelta.
+
+Le scelte principali, registrate anche in `PRODUCT.md`:
+
+- **Una sola scena, tante rive.** Sulla home ogni persona è un pontile con la sua lanterna sulla riva lontana, con il
+  nome scritto sopra in una leggera foschia. Il tuo pontile è in primo piano, in prospettiva vera: le assi stanno di
+  traverso all'asse del pontile e hanno un loro punto di fuga, i pali continuano sott'acqua.
+- **Calda e umana, sempre.** Il cielo e l'acqua restano veri, ma ciò che si tocca è caldo: il falò (di giorno solo
+  braci, la sera fiamme a particelle e braci che salgono a spirale), il legno illuminato dal fuoco, la lanterna
+  dell'invito con la scritta che le volteggia attorno e di notte si accende.
+- **La scena è l'interfaccia, dove è istintivo.** Le prove hanno mostrato che gli oggetti sul pontile come comandi non
+  si capiscono: Ricordi e Impostazioni sono tornati icone con il nome in alto, che aprono menù di carta. Restano nella
+  scena le persone (tocchi un pontile e la vista attraversa il lago fino alla sua riva) e l'invito.
+- **Le lanterne vivono nel canale.** Prima dell'orario di una persona, nel suo canale galleggiano le lanterne che le
+  stai mandando; all'orario partono, mentre le sue arrivano e si incrociano a metà lago. Di notte si aprono toccandole:
+  un foglio di carta con il contenuto, le reazioni e "Conserva".
+- **Pensata per il telefono.** Niente passaggio del mouse: ogni effetto risponde al tocco e alla tastiera, con le
+  animazioni ferme quando il sistema chiede meno movimento.
+
+Ogni bozza è stata controllata con Playwright, anche emulando un Pixel 7 con tocchi veri, e con il rilevatore di
+impeccable. La bozza ingrandisce la scena già disegnata per entrare nel canale: nell'app la scena del canale andrà
+disegnata direttamente a quella distanza.
+
+**Stato:** passaggio di design chiuso per la home e il canale. Prossimo passo: pianificare la costruzione della scena
+nell'app (sostituisce lo strato visivo del Task 3), poi il README con le schermate, la prova sul telefono e la
+revisione finale.

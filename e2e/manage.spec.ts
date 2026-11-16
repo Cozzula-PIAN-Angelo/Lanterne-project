@@ -47,7 +47,7 @@ test("un cambio d'orario vale da domani e un blocco chiude tutto", async ({ brow
   await anna.getByRole("link", { name: "Luca" }).click();
   await anna.getByRole("button", { name: "Blocca" }).click();
   await expect(
-    anna.getByText("Luca non potrà più invitarti e le tue lanterne che ha conservato verranno eliminate."),
+    anna.getByText("La connessione si chiude e le lanterne non ancora arrivate vengono eliminate, in entrambe le direzioni. Luca non potrà più invitarti e le tue lanterne che ha conservato verranno eliminate."),
   ).toBeVisible();
   await anna.getByRole("button", { name: "Sì, blocca" }).click();
   await expect(anna).toHaveURL(/\/$/);
@@ -274,7 +274,7 @@ test("il conto alla rovescia segue il viaggio nel tempo", async ({ browser }) =>
   await anna.getByLabel("La tua lanterna").fill("parte stasera");
   await anna.getByRole("button", { name: "Lascia la lanterna" }).click();
 
-  const countdown = anna.getByRole("region", { name: "Le tue lanterne" }).getByText(/^tra /);
+  const countdown = anna.getByText(/^tra /);
   await expect(countdown).toBeVisible();
   const before = await countdown.textContent();
   await anna.getByRole("button", { name: "+1 ora" }).click();

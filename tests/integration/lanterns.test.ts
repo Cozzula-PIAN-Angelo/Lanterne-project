@@ -6,6 +6,7 @@ import {
   createThoughtLantern,
   deleteLantern,
   getChannel,
+  getMemories,
   reactToLantern,
   saveLantern,
 } from "@/lib/access/lanterns";
@@ -135,6 +136,23 @@ test("nextDepartureAt usa il fuso del partner ed è null se la connessione non �
     const closed = await getChannel(db, { connectionId: conn.id, userId: giulia.id, now });
     if (!closed.ok) throw new Error(closed.error);
     expect(closed.value.nextDepartureAt).toBeNull();
+  }
+});
+
+test("lastArrivalAt è l'ultimo arrivo nel fuso di chi guarda", async () => {
+  const { giulia, marco, conn } = await setup();
+  const g = await getChannel(db, { connectionId: conn.id, userId: giulia.id, now });
+  if (!g.ok) throw new Error(g.error);
+  expect(g.value.lastArrivalAt?.toISOString()).toBe("2026-11-02T20:30:00.000Z");
+  const m = await getChannel(db, { connectionId: conn.id, userId: marco.id, now });
+  if (!m.ok) throw new Error(m.error);
+  expect(m.value.lastArrivalAt?.toISOString()).toBe("2026-11-02T02:30:00.000Z");
+
+  for (const status of ["pending", "ended"] as const) {
+    await db.update(connections).set({ status }).where(eq(connections.id, conn.id));
+    const closed = await getChannel(db, { connectionId: conn.id, userId: giulia.id, now });
+    if (!closed.ok) throw new Error(closed.error);
+    expect(closed.value.lastArrivalAt).toBeNull();
   }
 });
 
@@ -352,5 +370,70 @@ describe("concorrenza e cambi d'orario", () => {
       .where(eq(connections.id, conn.id));
     const res = await getChannel(db, { connectionId: conn.id, userId: marco.id, now: at("2026-11-03T03:00:00Z") });
     expect(res.ok && res.value.partnerLeftNothing).toBe(false);
+  });
+});
+
+describe("getMemories", () => {
+  async function saved(connectionId: string, senderId: string, recipientId: string, text: string, sentAt: string, savedAt: string) {
+    const res = await createTextLantern(db, { connectionId, senderId, text, now: at(sentAt) });
+    if (!res.ok) throw new Error(res.error);
+    const r = await saveLantern(db, { lanternId: res.value.id, userId: recipientId, now: at(savedAt) });
+    if (!r.ok) throw new Error(r.error);
+    return res.value;
+  }
+
+  test("getMemories raggruppa per sera, dalla più recente", async () => {
+    const { giulia, marco, conn } = await setup();
+    // Per Marco (New York, 21:30): arrivo il 3 novembre alle 02:30Z e il 5 alle 02:30Z → sere del 2 e del 4.
+    const first = await saved(conn.id, giulia.id, marco.id, "prima", "2026-11-02T22:00:00Z", "2026-11-03T03:00:00Z");
+    const second = await saved(conn.id, giulia.id, marco.id, "seconda", "2026-11-04T22:00:00Z", "2026-11-05T03:00:00Z");
+    const res = await getMemories(db, { connectionId: conn.id, userId: marco.id, now: at("2026-11-06T12:00:00Z") });
+    if (!res.ok) throw new Error(res.error);
+    expect(res.value.evenings.map((e) => e.date)).toEqual(["2026-11-04", "2026-11-02"]);
+    expect(res.value.evenings[0].lanterns.map((l) => l.id)).toEqual([second.id]);
+    expect(res.value.evenings[1].lanterns.map((l) => l.id)).toEqual([first.id]);
+    expect(res.value.partner.name).toBe("Giulia");
+  });
+
+  test("getMemories mostra solo ciò che ho conservato io", async () => {
+    const { giulia, marco, conn } = await setup();
+    const forMarco = await saved(conn.id, giulia.id, marco.id, "per Marco", "2026-11-02T22:00:00Z", "2026-11-03T03:00:00Z");
+    const forGiulia = await saved(conn.id, marco.id, giulia.id, "per Giulia", "2026-11-02T22:00:00Z", "2026-11-03T21:00:00Z");
+    const later = at("2026-11-04T12:00:00Z");
+    const m = await getMemories(db, { connectionId: conn.id, userId: marco.id, now: later });
+    const g = await getMemories(db, { connectionId: conn.id, userId: giulia.id, now: later });
+    if (!m.ok || !g.ok) throw new Error("not ok");
+    expect(m.value.evenings.flatMap((e) => e.lanterns.map((l) => l.id))).toEqual([forMarco.id]);
+    expect(g.value.evenings.flatMap((e) => e.lanterns.map((l) => l.id))).toEqual([forGiulia.id]);
+  });
+
+  test("getMemories funziona anche a connessione chiusa", async () => {
+    const { giulia, marco, conn } = await setup();
+    const l = await saved(conn.id, giulia.id, marco.id, "resta", "2026-11-02T22:00:00Z", "2026-11-03T03:00:00Z");
+    const later = at("2026-11-04T12:00:00Z");
+    await db.update(connections).set({ status: "ended", endedAt: later }).where(eq(connections.id, conn.id));
+    const res = await getMemories(db, { connectionId: conn.id, userId: marco.id, now: later });
+    if (!res.ok) throw new Error(res.error);
+    expect(res.value.status).toBe("ended");
+    expect(res.value.evenings.flatMap((e) => e.lanterns.map((x) => x.id))).toEqual([l.id]);
+  });
+
+  test("un arrivo a mezzanotte appartiene alla sera prima", async () => {
+    const { giulia, marco, conn } = await setup();
+    await db.update(connections).set({ revealTime: "00:00" }).where(eq(connections.id, conn.id));
+    await saved(conn.id, giulia.id, marco.id, "notte", "2026-11-02T22:00:00Z", "2026-11-03T06:00:00Z");
+    const res = await getMemories(db, { connectionId: conn.id, userId: marco.id, now: at("2026-11-04T12:00:00Z") });
+    if (!res.ok) throw new Error(res.error);
+    // Arrivo 05:00Z = 00:00 a New York del 3 novembre: la sera è il 2.
+    expect(res.value.evenings.map((e) => e.date)).toEqual(["2026-11-02"]);
+  });
+
+  test("un estraneo riceve not_found", async () => {
+    const { conn } = await setup();
+    const stranger = await makeUser(db);
+    expect(await getMemories(db, { connectionId: conn.id, userId: stranger.id, now })).toEqual({
+      ok: false,
+      error: "not_found",
+    });
   });
 });

@@ -33,7 +33,7 @@ function receivedPlayer(lantern: LanternView, senderName: string, viewerTz: stri
   );
 }
 
-/** Una lanterna arrivata: chi la riceve può reagire e conservarla. */
+/** Una lanterna arrivata, aperta dal lago: chi la riceve può reagire e conservarla. */
 export function ArrivedLantern({
   lantern,
   connectionId,
@@ -42,7 +42,7 @@ export function ArrivedLantern({
 }: Props & { senderName: string }) {
   const fields = { connectionId, lanternId: lantern.id };
   return (
-    <li className="space-y-2 rounded-xl border p-4">
+    <div className="space-y-2 rounded-xl border bg-card p-4">
       <Content lantern={lantern} viewerTz={viewerTz} player={receivedPlayer(lantern, senderName, viewerTz)} />
       <div className="flex flex-wrap gap-1">
         {REACTIONS.map((reaction) => {
@@ -70,11 +70,11 @@ export function ArrivedLantern({
           </ActionButton>
         )
       )}
-    </li>
+    </div>
   );
 }
 
-/** Una lanterna inviata: sigillata si può eliminare, aperta mostra cosa ne ha fatto l'altro. */
+/** Una lanterna inviata, aperta dal lago: sigillata si può eliminare, partita mostra cosa ne ha fatto l'altro. */
 export function SentLantern({
   lantern,
   connectionId,
@@ -91,7 +91,7 @@ export function SentLantern({
       />
     ) : undefined;
   return (
-    <li className="space-y-2 rounded-xl border p-4">
+    <div className="space-y-2 rounded-xl border bg-card p-4">
       <Content lantern={lantern} viewerTz={viewerTz} player={player} />
       {lantern.sealed && (
         <ActionButton
@@ -106,7 +106,7 @@ export function SentLantern({
       {!lantern.sealed && lantern.savedAt && (
         <p className="text-sm text-muted-foreground">{partnerName} l&apos;ha conservata</p>
       )}
-    </li>
+    </div>
   );
 }
 
@@ -119,6 +119,8 @@ export function MemoryLantern({
   return (
     <li className="space-y-2 rounded-xl border p-4">
       <Content lantern={lantern} viewerTz={viewerTz} player={receivedPlayer(lantern, senderName, viewerTz)} />
+      <p className="text-xs text-muted-foreground">Arrivata {atTime(lantern.revealAt, viewerTz)}</p>
+      {lantern.reaction && <p aria-label="La tua reazione">{lantern.reaction}</p>}
     </li>
   );
 }

@@ -5,6 +5,7 @@ import {
   connectPair,
   loginWithMagicLink,
   closeContexts,
+  openLantern,
   resetAuthRateLimit,
   setClockOffset,
 } from "./helpers";
@@ -25,20 +26,22 @@ test("le lanterne restano sigillate fino all'orario, poi si leggono e si conserv
 
   await anna.getByLabel("La tua lanterna").fill(TRAMONTO);
   await anna.getByRole("button", { name: "Lascia la lanterna" }).click();
-  const mine = anna.getByRole("region", { name: "Le tue lanterne" });
-  await expect(mine.getByText(TRAMONTO)).toBeVisible();
+  let panel = await openLantern(anna, "Le tue lanterne", /^Testo di Anna/);
+  await expect(panel.getByText(TRAMONTO)).toBeVisible();
   await expect(anna.getByLabel("La tua lanterna")).toHaveValue("");
+  await expect(panel.getByRole("button", { name: "Elimina" })).toHaveCount(1);
 
   await anna.getByRole("button", { name: "ti penso" }).click();
-  await expect(mine.getByText("ti penso")).toBeVisible();
-  await expect(mine.getByText(/^partono .*, le 21:30 di Luca$/)).toBeVisible();
-  await expect(mine.getByText(/^tra /)).toBeVisible();
-  await expect(mine.getByRole("button", { name: "Elimina" })).toHaveCount(2);
+  panel = await openLantern(anna, "Le tue lanterne", /^Pensiero di Anna/);
+  await expect(panel.getByText("ti penso")).toBeVisible();
+  await expect(anna.getByText(/^partono .*, le 21:30 di Luca$/)).toBeVisible();
+  await expect(anna.getByText(/^tra /)).toBeVisible();
+  await expect(panel.getByRole("button", { name: "Elimina" })).toHaveCount(1);
 
   // Prima dell'arrivo Luca non vede niente.
   await luca.goto(channel);
   await expect(luca.getByRole("heading", { name: "Anna" })).toBeVisible();
-  await expect(luca.getByRole("region", { name: "Arrivate" })).toHaveCount(0);
+  await expect(luca.getByRole("list", { name: "Arrivate" })).toHaveCount(0);
   await expect(luca.getByText(TRAMONTO)).toHaveCount(0);
 
   // Un minuto dopo l'apertura, nell'ora di New York.
@@ -51,22 +54,29 @@ test("le lanterne restano sigillate fino all'orario, poi si leggono e si conserv
   await setClockOffset(luca, offset);
   await luca.reload();
 
-  const arrived = luca.getByRole("region", { name: "Arrivate" });
-  await expect(arrived.getByText("ti penso")).toBeVisible();
-  const text = arrived.getByRole("listitem").filter({ hasText: TRAMONTO });
+  const thought = await openLantern(luca, "Arrivate", /^Pensiero di Anna/);
+  await expect(thought.getByText("ti penso")).toBeVisible();
+  const text = await openLantern(luca, "Arrivate", /^Testo di Anna/);
+  await expect(text.getByText(TRAMONTO)).toBeVisible();
   await text.getByRole("button", { name: "💛" }).click();
   await expect(text.getByRole("button", { name: "💛" })).toHaveAttribute("aria-pressed", "true");
   await text.getByRole("button", { name: "Conserva" }).click();
   await expect(text.getByText("Conservata")).toBeVisible();
-  await expect(luca.getByRole("region", { name: "Ricordi" }).getByText(TRAMONTO)).toBeVisible();
+  await luca.getByRole("link", { name: "Ricordi (1)" }).click();
+  await expect(luca.getByRole("heading", { name: "Ricordi con Anna" })).toBeVisible();
+  await expect(luca.getByText(TRAMONTO, { exact: true }).filter({ visible: true })).toBeVisible();
 
   // Anna, con lo stesso orologio, vede la lanterna aperta.
   await setClockOffset(anna, offset);
   await anna.reload();
-  const opened = mine.getByRole("listitem").filter({ hasText: TRAMONTO });
+  const opened = await openLantern(anna, "Le tue lanterne", /^Testo di Anna/);
+  await expect(opened.getByText(TRAMONTO)).toBeVisible();
   await expect(opened.getByText("Luca l'ha conservata")).toBeVisible();
   await expect(opened.getByText("💛")).toBeVisible();
-  await expect(mine.getByRole("button", { name: "Elimina" })).toHaveCount(0);
+  await expect(opened.getByRole("button", { name: "Elimina" })).toHaveCount(0);
+  const openedThought = await openLantern(anna, "Le tue lanterne", /^Pensiero di Anna/);
+  await expect(openedThought.getByText("ti penso")).toBeVisible();
+  await expect(openedThought.getByRole("button", { name: "Elimina" })).toHaveCount(0);
 
   // Per un estraneo il canale non esiste: stessa risposta di un id inventato.
   const sara = await (await browser.newContext()).newPage();
@@ -88,9 +98,9 @@ test("una lanterna sigillata si può eliminare", async ({ browser }) => {
 
   await anna.getByLabel("La tua lanterna").fill("ci ho ripensato");
   await anna.getByRole("button", { name: "Lascia la lanterna" }).click();
-  const mine = anna.getByRole("region", { name: "Le tue lanterne" });
-  await expect(mine.getByText("ci ho ripensato")).toBeVisible();
+  const panel = await openLantern(anna, "Le tue lanterne", /^Testo di Anna/);
+  await expect(panel.getByText("ci ho ripensato")).toBeVisible();
 
-  await mine.getByRole("button", { name: "Elimina" }).click();
+  await panel.getByRole("button", { name: "Elimina" }).click();
   await expect(anna.getByText("ci ho ripensato")).toHaveCount(0);
 });

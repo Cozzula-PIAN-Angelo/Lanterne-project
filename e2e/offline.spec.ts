@@ -1,12 +1,15 @@
 import { expect, test, type Page } from "@playwright/test";
 import postgres from "postgres";
 import { computeRevealAt } from "@/lib/time/lantern-times";
-import { closeContexts, connectPair, resetAuthRateLimit, setClockOffset } from "./helpers";
+import { closeContexts, connectPair, openLantern, resetAuthRateLimit, setClockOffset } from "./helpers";
 
 test.beforeEach(resetAuthRateLimit);
 test.afterEach(closeContexts);
 
-const WAITING = "in attesa di rete";
+const WAITING = /^Vocale per Luca: in attesa di rete$/;
+// Con la rete accesa e l'invio fallito la riga passa per "nuovo tentativo tra poco".
+const QUEUED = /^Vocale per Luca: (in attesa di rete|nuovo tentativo tra poco|invio in corso…)$/;
+const QUEUED_IDLE = /^Vocale per Luca: (in attesa di rete|nuovo tentativo tra poco)$/;
 
 async function openChannel(page: Page, partner: string) {
   await page.goto("/");
@@ -69,11 +72,11 @@ test("un vocale registrato offline parte al ritorno della rete", async ({ browse
   await anna.context().setOffline(true);
   await record(anna);
   await expect(anna.getByText(WAITING)).toBeVisible();
-  const mine = anna.getByRole("region", { name: "Le tue lanterne" });
-  await expect(mine.getByText("Vocale, meno di un minuto")).toHaveCount(0);
+  const mine = anna.getByRole("list", { name: "Le tue lanterne" });
+  await expect(mine.getByRole("button", { name: /^Vocale di Anna/ })).toHaveCount(0);
 
   await anna.context().setOffline(false);
-  await expect(mine.getByText("Vocale, meno di un minuto")).toBeVisible();
+  await expect((await openLantern(anna, "Le tue lanterne", /^Vocale di Anna/)).getByText("Vocale, meno di un minuto")).toBeVisible();
   await expect(anna.getByText(WAITING)).toHaveCount(0);
 });
 
@@ -82,14 +85,14 @@ test("la coda sopravvive alla chiusura della pagina", async ({ browser }) => {
   const connectionId = await openChannel(anna, "Luca");
   await breakStorage(anna);
   await record(anna);
-  await expect(anna.getByText(WAITING)).toBeVisible();
+  await expect(anna.getByText(QUEUED)).toBeVisible();
 
   await anna.reload();
-  await expect(anna.getByText(WAITING)).toBeVisible();
+  await expect(anna.getByText(QUEUED)).toBeVisible();
 
   await anna.unroute(/:9000\//);
   await anna.reload();
-  await expect(anna.getByRole("region", { name: "Le tue lanterne" }).getByText("Vocale, meno di un minuto")).toBeVisible();
+  await expect((await openLantern(anna, "Le tue lanterne", /^Vocale di Anna/)).getByText("Vocale, meno di un minuto")).toBeVisible();
   expect(await voiceCount(connectionId)).toBe(1);
 });
 
@@ -99,13 +102,12 @@ test("un invio fallito con la rete accesa riprova da solo", async ({ browser }) 
   await openChannel(anna, "Luca");
   await breakStorage(anna);
   await record(anna);
-  await expect(anna.getByText(WAITING)).toBeVisible();
+  await expect(anna.getByText(QUEUED)).toBeVisible();
 
   await anna.unroute(/:9000\//);
-  await expect(anna.getByRole("region", { name: "Le tue lanterne" }).getByText("Vocale, meno di un minuto")).toBeVisible({
-    timeout: 20_000,
-  });
-  await expect(anna.getByText(WAITING)).toHaveCount(0);
+  const voice = await openLantern(anna, "Le tue lanterne", /^Vocale di Anna/, { timeout: 20_000 });
+  await expect(voice.getByText("Vocale, meno di un minuto")).toBeVisible();
+  await expect(anna.getByText(QUEUED)).toHaveCount(0);
 });
 
 test("tornando sull'app un invio fallito riprova subito", async ({ browser }) => {
@@ -114,21 +116,19 @@ test("tornando sull'app un invio fallito riprova subito", async ({ browser }) =>
   await openChannel(anna, "Luca");
   await breakStorage(anna);
   await record(anna);
-  await expect(anna.getByText(WAITING)).toBeVisible();
+  await expect(anna.getByText(QUEUED)).toBeVisible();
   // Passa il primo tentativo automatico: il prossimo sarebbe tra 30 secondi, oltre l'attesa qui sotto.
   await anna.waitForTimeout(7000);
 
   await anna.unroute(/:9000\//);
   await anna.evaluate(() => document.dispatchEvent(new Event("visibilitychange")));
-  await expect(anna.getByRole("region", { name: "Le tue lanterne" }).getByText("Vocale, meno di un minuto")).toBeVisible({
-    timeout: 10_000,
-  });
+  const voice = await openLantern(anna, "Le tue lanterne", /^Vocale di Anna/, { timeout: 10_000 });
+  await expect(voice.getByText("Vocale, meno di un minuto")).toBeVisible();
 });
 
 test("riprova e scarta funzionano dopo un rifiuto", async ({ browser }) => {
   const { anna } = await connectPair(browser, "offline-rifiuto");
   const connectionId = await openChannel(anna, "Luca");
-  const mine = anna.getByRole("region", { name: "Le tue lanterne" });
 
   await anna.context().setOffline(true);
   await record(anna);
@@ -141,7 +141,7 @@ test("riprova e scarta funzionano dopo un rifiuto", async ({ browser }) => {
 
   await setStatus(connectionId, "active");
   await panel.getByRole("button", { name: "Riprova" }).click();
-  await expect(mine.getByText("Vocale, meno di un minuto")).toBeVisible();
+  await expect((await openLantern(anna, "Le tue lanterne", /^Vocale di Anna/)).getByText("Vocale, meno di un minuto")).toBeVisible();
   await expect(panel).toHaveCount(0);
   expect(await voiceCount(connectionId)).toBe(1);
 
@@ -162,12 +162,12 @@ test("uscendo con vocali in coda l'app avvisa e li cancella", async ({ browser }
   await openChannel(anna, "Luca");
   await breakStorage(anna);
   await record(anna);
-  await expect(anna.getByText(WAITING)).toBeVisible();
+  await expect(anna.getByText(QUEUED)).toBeVisible();
   expect(await queuedOnDevice(anna)).toBe(1);
 
   await anna.goto("/impostazioni");
-  // Il pannello esiste solo nel browser: quando compare, la pagina risponde ai tocchi.
-  await expect(anna.getByText(WAITING)).toBeVisible();
+  // Il pannello esiste solo nel browser: quando il primo giro finisce, la pagina risponde ai tocchi.
+  await expect(anna.getByText(QUEUED_IDLE)).toBeVisible();
   await anna.getByRole("button", { name: "Esci", exact: true }).click();
   await expect(anna.getByText("Hai 1 lanterna non ancora partita: uscendo verrà cancellata")).toBeVisible();
   await anna.getByRole("button", { name: "Annulla" }).click();
@@ -185,7 +185,7 @@ test("eliminare l'account svuota la coda", async ({ browser }) => {
   await openChannel(anna, "Luca");
   await breakStorage(anna);
   await record(anna);
-  await expect(anna.getByText(WAITING)).toBeVisible();
+  await expect(anna.getByText(QUEUED)).toBeVisible();
 
   await anna.goto("/impostazioni");
   await anna.getByLabel("Scrivi ELIMINA per confermare").fill("ELIMINA");
@@ -206,7 +206,7 @@ test("due schede aperte non inviano lo stesso vocale due volte", async ({ browse
   await expect(anna.getByText(WAITING)).toBeVisible();
 
   await anna.context().setOffline(false);
-  await expect(anna.getByRole("region", { name: "Le tue lanterne" }).getByText("Vocale, meno di un minuto")).toBeVisible();
+  await expect((await openLantern(anna, "Le tue lanterne", /^Vocale di Anna/)).getByText("Vocale, meno di un minuto")).toBeVisible();
   await anna.waitForTimeout(1500);
   expect(await voiceCount(connectionId)).toBe(1);
 });
@@ -224,7 +224,7 @@ test("senza IndexedDB il vocale resta in memoria e l'app lo dice", async ({ brow
   await expect(anna.getByText(/non chiudere la pagina/)).toBeVisible();
 
   await anna.context().setOffline(false);
-  await expect(anna.getByRole("region", { name: "Le tue lanterne" }).getByText("Vocale, meno di un minuto")).toBeVisible();
+  await expect((await openLantern(anna, "Le tue lanterne", /^Vocale di Anna/)).getByText("Vocale, meno di un minuto")).toBeVisible();
 });
 
 test("se l'orario è passato mentre aspettava, avvisa che parte la sera dopo", async ({ browser }) => {
@@ -243,5 +243,5 @@ test("se l'orario è passato mentre aspettava, avvisa che parte la sera dopo", a
   await setClockOffset(anna, revealAt.getTime() - Date.now() + 60_000);
   await anna.context().setOffline(false);
 
-  await expect(anna.getByText("Era in attesa di rete: partirà la sera dopo.")).toBeVisible();
+  await expect(anna.getByText("La lanterna per Luca era in attesa di rete: partirà la sera dopo.")).toBeVisible();
 });

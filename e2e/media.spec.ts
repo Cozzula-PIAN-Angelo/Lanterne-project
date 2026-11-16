@@ -1,7 +1,7 @@
 import { readFileSync } from "node:fs";
 import { expect, test, type Page } from "@playwright/test";
 import { computeRevealAt } from "@/lib/time/lantern-times";
-import { closeContexts, connectPair, resetAuthRateLimit, setClockOffset } from "./helpers";
+import { closeContexts, connectPair, openLantern, resetAuthRateLimit, setClockOffset } from "./helpers";
 
 test.beforeEach(resetAuthRateLimit);
 test.afterEach(closeContexts);
@@ -31,7 +31,7 @@ test("un vocale si registra, parte all'orario e si ascolta", async ({ browser })
   await anna.waitForTimeout(1200);
   await anna.getByRole("button", { name: "Ferma e invia" }).click();
 
-  const mine = anna.getByRole("region", { name: "Le tue lanterne" });
+  const mine = await openLantern(anna, "Le tue lanterne", /^Vocale di Anna/);
   await expect(mine.getByText("Vocale, meno di un minuto")).toBeVisible();
   await expect(mine.getByRole("button", { name: "Elimina" })).toBeVisible();
 
@@ -42,11 +42,12 @@ test("un vocale si registra, parte all'orario e si ascolta", async ({ browser })
   // Prima dell'arrivo Luca non vede niente.
   await luca.goto(channel);
   await expect(luca.getByRole("heading", { name: "Anna" })).toBeVisible();
+  await expect(luca.getByRole("list", { name: "Arrivate" })).toHaveCount(0);
   await expect(luca.getByText("Vocale")).toHaveCount(0);
 
   await setClockOffset(luca, offsetToArrival());
   await luca.reload();
-  const arrived = luca.getByRole("region", { name: "Arrivate" });
+  const arrived = await openLantern(luca, "Arrivate", /^Vocale di Anna/);
   await arrived.getByRole("button", { name: /^Ascolta: Vocale di Anna/ }).click();
   const audio = arrived.locator("audio");
   await expect(audio).toHaveAttribute("src", /X-Amz-Signature/);
@@ -76,7 +77,7 @@ test("senza permesso del microfono restano testo e pensieri", async ({ browser }
 
   await anna.getByLabel("La tua lanterna").fill("scrivo lo stesso");
   await anna.getByRole("button", { name: "Lascia la lanterna" }).click();
-  await expect(anna.getByRole("region", { name: "Le tue lanterne" }).getByText("scrivo lo stesso")).toBeVisible();
+  await expect((await openLantern(anna, "Le tue lanterne", /^Testo di Anna/)).getByText("scrivo lo stesso")).toBeVisible();
 });
 
 test("il browser senza MediaRecorder avvisa e nasconde il pulsante", async ({ browser }) => {
@@ -128,13 +129,13 @@ test("lasciando la pagina mentre si registra, al ritorno si può registrare di n
   await expect(anna).toHaveURL(/\/persone\//);
 
   await expect(anna.getByRole("alert").filter({ hasText: "La registrazione si è interrotta" })).toBeVisible();
-  await expect(anna.getByRole("region", { name: "Le tue lanterne" })).toHaveCount(0);
+  await expect(anna.getByRole("list", { name: "Le tue lanterne" })).toHaveCount(0);
 
   await anna.getByRole("button", { name: "Registra" }).click();
   await expect(anna.getByRole("alert").filter({ hasText: "La registrazione si è interrotta" })).toHaveCount(0);
   await anna.waitForTimeout(1200);
   await anna.getByRole("button", { name: "Ferma e invia" }).click();
-  await expect(anna.getByRole("region", { name: "Le tue lanterne" }).getByText("Vocale, meno di un minuto")).toBeVisible();
+  await expect((await openLantern(anna, "Le tue lanterne", /^Vocale di Anna/)).getByText("Vocale, meno di un minuto")).toBeVisible();
 });
 
 test("il permesso che arriva dopo aver lasciato la pagina non accende il microfono", async ({ browser }) => {
@@ -182,7 +183,7 @@ test("lasciando la pagina il vocale smette di suonare", async ({ browser }) => {
   await anna.getByRole("button", { name: "Registra" }).click();
   await anna.waitForTimeout(1200);
   await anna.getByRole("button", { name: "Ferma e invia" }).click();
-  const mine = anna.getByRole("region", { name: "Le tue lanterne" });
+  const mine = await openLantern(anna, "Le tue lanterne", /^Vocale di Anna/);
   await mine.getByRole("button", { name: /^Riascolta/ }).click();
 
   const audio = anna.locator("audio");
@@ -207,12 +208,12 @@ test("una foto arriva ricompressa e senza EXIF", async ({ browser }) => {
   const channel = await openChannel(anna, "Luca");
   await anna.getByLabel("Aggiungi una foto").setInputFiles(FIXTURE);
 
-  const mine = anna.getByRole("region", { name: "Le tue lanterne" });
+  const mine = await openLantern(anna, "Le tue lanterne", /^Foto di Anna/);
   await expect(mine.getByText("Foto", { exact: true })).toBeVisible();
 
   await setClockOffset(luca, offsetToArrival());
   await luca.goto(channel);
-  const arrived = luca.getByRole("region", { name: "Arrivate" });
+  const arrived = await openLantern(luca, "Arrivate", /^Foto di Anna/);
   await arrived.getByRole("button", { name: /^Apri: Foto di Anna/ }).click();
   const image = arrived.getByRole("img", { name: /^Foto di Anna/ });
   await expect(image).toBeVisible();
@@ -231,5 +232,5 @@ test("un file che non è un'immagine dà un messaggio calmo", async ({ browser }
   await openChannel(anna, "Luca");
   await anna.getByLabel("Aggiungi una foto").setInputFiles("e2e/fixtures/not-a-photo.txt");
   await expect(anna.getByRole("alert").filter({ hasText: "non si riesce ad aprire" })).toBeVisible();
-  await expect(anna.getByRole("region", { name: "Le tue lanterne" })).toHaveCount(0);
+  await expect(anna.getByRole("list", { name: "Le tue lanterne" })).toHaveCount(0);
 });

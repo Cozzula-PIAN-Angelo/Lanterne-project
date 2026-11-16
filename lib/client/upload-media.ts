@@ -11,6 +11,17 @@ export type UploadedTicket = { lanternId: string; revealAt: string };
 /** 25 MB in 10 minuti sono circa 330 kbit/s: oltre non è una rete lenta, è un caricamento bloccato. */
 export const UPLOAD_TIMEOUT_MS = 10 * 60 * 1000;
 
+/** Una Server Action che non risponde non deve tenere il pannello su "invio in corso" per sempre. */
+export const ACTION_TIMEOUT_MS = 30_000;
+
+export function withTimeout<T>(promise: Promise<T>, ms: number): Promise<T> {
+  let timer: ReturnType<typeof setTimeout>;
+  const expired = new Promise<never>((_, reject) => {
+    timer = setTimeout(() => reject(new Error("timeout")), ms);
+  });
+  return Promise.race([promise, expired]).finally(() => clearTimeout(timer));
+}
+
 async function putFile(url: string, headers: Record<string, string>, body: Blob): Promise<Response> {
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), UPLOAD_TIMEOUT_MS);
@@ -38,7 +49,10 @@ export async function uploadMedia(input: {
   try {
     let ticket = input.uploaded;
     if (!ticket) {
-      const granted = await requestUploadAction({ connectionId, type, mime, bytes: blob.size, durationSec });
+      const granted = await withTimeout(
+        requestUploadAction({ connectionId, type, mime, bytes: blob.size, durationSec }),
+        ACTION_TIMEOUT_MS,
+      );
       if ("error" in granted) return { kind: "rejected", message: granted.error };
 
       const upload = await putFile(granted.uploadUrl, granted.uploadHeaders, new Blob([blob], { type: mime }));
@@ -48,7 +62,10 @@ export async function uploadMedia(input: {
       await input.onUploaded?.(ticket);
     }
 
-    const confirmed = await confirmUploadAction({ connectionId, lanternId: ticket.lanternId });
+    const confirmed = await withTimeout(
+      confirmUploadAction({ connectionId, lanternId: ticket.lanternId }),
+      ACTION_TIMEOUT_MS,
+    );
     if ("error" in confirmed) return { kind: "rejected", message: confirmed.error };
     return { kind: "sent", revealAt: ticket.revealAt };
   } catch {

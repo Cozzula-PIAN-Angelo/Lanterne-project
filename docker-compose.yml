@@ -10,6 +10,12 @@ services:
     volumes:
       - pgdata:/var/lib/postgresql/data
       - ./docker/postgres-init.sql:/docker-entrypoint-initdb.d/init.sql:ro
+    healthcheck:
+      # Su TCP: durante lo script iniziale il server temporaneo ascolta solo sul socket.
+      test: ["CMD-SHELL", "pg_isready -U lanterne -h 127.0.0.1"]
+      interval: 2s
+      timeout: 5s
+      retries: 30
 
   mailpit:
     image: axllent/mailpit

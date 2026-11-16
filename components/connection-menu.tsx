@@ -167,7 +167,7 @@ export function ConnectionMenu(props: Props) {
       )}
       {panel === "block" && (
         <Confirm
-          text={`${partnerName} non potrà più invitarti e le tue lanterne che ha conservato verranno eliminate.`}
+          text={`La connessione si chiude e le lanterne non ancora arrivate vengono eliminate, in entrambe le direzioni. ${partnerName} non potrà più invitarti e le tue lanterne che ha conservato verranno eliminate.`}
           confirmLabel="Sì, blocca"
           action={blockAction}
           connectionId={connectionId}

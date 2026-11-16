@@ -49,24 +49,26 @@
 }
 
 :root {
-  --background: oklch(1 0 0);
-  --foreground: oklch(0.145 0 0);
-  --card: oklch(1 0 0);
-  --card-foreground: oklch(0.145 0 0);
-  --popover: oklch(1 0 0);
-  --popover-foreground: oklch(0.145 0 0);
-  --primary: oklch(0.205 0 0);
-  --primary-foreground: oklch(0.985 0 0);
-  --secondary: oklch(0.97 0 0);
-  --secondary-foreground: oklch(0.205 0 0);
-  --muted: oklch(0.97 0 0);
-  --muted-foreground: oklch(0.556 0 0);
-  --accent: oklch(0.97 0 0);
-  --accent-foreground: oklch(0.205 0 0);
-  --destructive: oklch(0.577 0.245 27.325);
-  --border: oklch(0.922 0 0);
-  --input: oklch(0.922 0 0);
-  --ring: oklch(0.708 0 0);
+  /* I colori di base sono quelli del lago di giorno: la propria riva e il testo. */
+  --background: #e9e4d8;
+  --foreground: #26323a;
+  --card: #f4f1ea;
+  --card-foreground: #26323a;
+  --popover: #f4f1ea;
+  --popover-foreground: #26323a;
+  --primary: #26323a;
+  --primary-foreground: #f4f1ea;
+  --secondary: #ddd7c9;
+  --secondary-foreground: #26323a;
+  --muted: #ddd7c9;
+  --muted-foreground: #5b6670;
+  --accent: #ddd7c9;
+  --accent-foreground: #26323a;
+  /* Mattone: resta AA sul fondo caldo, anche nel pulsante con lo sfondo al 10%. */
+  --destructive: #a8322a;
+  --border: #d2cbbb;
+  --input: #b9b2a3;
+  --ring: #6f8592;
   --chart-1: oklch(0.87 0 0);
   --chart-2: oklch(0.556 0 0);
   --chart-3: oklch(0.439 0 0);
@@ -126,5 +128,139 @@
   }
   html {
     @apply font-sans;
+  }
+}
+
+/*
+ * Il lago. Ogni fase del cielo ha la sua palette: cielo (alto e basso), acqua (alta e bassa),
+ * riva lontana, riva vicina e testo. Il testo sta solo sul cielo e sulla riva vicina,
+ * dove resta sopra 4,5:1 in ogni fase.
+ */
+.lake-scene {
+  --lake-h: 26rem;
+  --lantern-unlit: #c9c2dc;
+  /* Più scuro del mockup (#8d82b0): così il bordo resta sopra 3:1 sulla riva chiara. */
+  --lantern-unlit-rim: #6f6596;
+  color: var(--lake-text);
+}
+.lake-scene[data-phase="day"] {
+  --lake-sky-top: #e6ebee;
+  --lake-sky-bottom: #d6e0e5;
+  --lake-water-top: #b9cbd4;
+  --lake-water-bottom: #a6bbc6;
+  --lake-far: #8fa3ae;
+  --lake-near: #e9e4d8;
+  --lake-text: #26323a;
+  --lake-ripple: #ffffff;
+  --lake-ripple-opacity: 0.55;
+  --lake-disc: #f6f3ea;
+}
+.lake-scene[data-phase="sunset"] {
+  --lake-sky-top: #e9d3bd;
+  --lake-sky-bottom: #d9a98c;
+  --lake-water-top: #a9b4bd;
+  --lake-water-bottom: #8d98a3;
+  --lake-far: #7f8a96;
+  --lake-near: #ddd2c2;
+  --lake-text: #2f2a26;
+  --lake-ripple: #f6e7d6;
+  --lake-ripple-opacity: 0.45;
+  --lake-disc: #f1c08a;
+}
+.lake-scene[data-phase="dusk"] {
+  --lake-sky-top: #4a4f66;
+  --lake-sky-bottom: #2e3448;
+  --lake-water-top: #262c3d;
+  --lake-water-bottom: #1c2232;
+  --lake-far: #1b2131;
+  --lake-near: #2a2e3a;
+  --lake-text: #ece7df;
+  --lake-ripple: #ece7df;
+  --lake-ripple-opacity: 0.12;
+  --lake-disc: #d9c9a8;
+}
+.lake-scene[data-phase="night"] {
+  --lake-sky-top: #121a26;
+  --lake-sky-bottom: #1a2433;
+  --lake-water-top: #0f1720;
+  --lake-water-bottom: #0c131b;
+  --lake-far: #0a1017;
+  --lake-near: #1a1f27;
+  --lake-text: #ece7df;
+  --lake-ripple: #ece7df;
+  --lake-ripple-opacity: 0.12;
+  --lake-disc: #e4ddcf;
+}
+
+/* Spenta: grigio-lilla con il bordo. Accesa: il colore della persona e un alone. */
+.lake-mark {
+  background-color: var(--lantern-unlit);
+  border: 1.5px solid var(--lantern-unlit-rim);
+  transition:
+    background-color 1.2s ease,
+    border-color 1.2s ease,
+    box-shadow 1.2s ease;
+}
+.lake-mark[data-lit="true"] {
+  background-color: var(--lantern);
+  border-color: var(--lantern);
+  box-shadow: 0 0 8px 2px color-mix(in srgb, var(--lantern) 50%, transparent);
+}
+/* Sui fondi chiari un bordo più scuro tiene la lanterna accesa distinguibile dall'acqua. */
+.lake-scene[data-phase="day"] .lake-mark[data-lit="true"],
+.lake-scene[data-phase="sunset"] .lake-mark[data-lit="true"] {
+  border-color: color-mix(in srgb, var(--lantern) 55%, #000);
+}
+.lake-reflection {
+  background: linear-gradient(color-mix(in srgb, var(--lantern) 66%, transparent), transparent);
+  filter: blur(1.5px);
+}
+
+@keyframes bob {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-3px);
+  }
+}
+@keyframes drift {
+  0% {
+    transform: translateX(-8px);
+  }
+  100% {
+    transform: translateX(8px);
+  }
+}
+/* Dalla riva dell'altra persona fino al suo posto sull'acqua. */
+@keyframes arrive {
+  0% {
+    transform: translateY(var(--arrive-from, -4rem)) scale(0.6);
+    opacity: 0;
+  }
+  100% {
+    transform: none;
+    opacity: 1;
+  }
+}
+.lake-bob {
+  animation: bob 6s ease-in-out infinite;
+}
+.lake-drift {
+  animation: drift 10s ease-in-out infinite alternate;
+}
+.lake-arrive {
+  animation: arrive 3.5s ease-out both;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .lake-bob,
+  .lake-drift,
+  .lake-arrive {
+    animation: none;
+  }
+  .lake-mark {
+    transition: none;
   }
 }

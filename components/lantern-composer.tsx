@@ -12,11 +12,13 @@ export function LanternComposer({
   userId,
   connectionId,
   expectedRevealAt,
+  partnerName,
 }: {
   userId: string;
   connectionId: string;
   /** Quando partirebbe adesso: se poi parte più tardi, la coda offline lo fa sapere. */
   expectedRevealAt: string;
+  partnerName: string;
 }) {
   const [text, setText] = useState("");
   const [textError, textAction, textPending] = useActionForm(async (formData) => {
@@ -29,8 +31,8 @@ export function LanternComposer({
 
   return (
     <div className="space-y-4">
-      <AudioRecorder userId={userId} connectionId={connectionId} expectedRevealAt={expectedRevealAt} />
-      <PhotoPicker userId={userId} connectionId={connectionId} expectedRevealAt={expectedRevealAt} />
+      <AudioRecorder userId={userId} connectionId={connectionId} expectedRevealAt={expectedRevealAt} partnerName={partnerName} />
+      <PhotoPicker userId={userId} connectionId={connectionId} expectedRevealAt={expectedRevealAt} partnerName={partnerName} />
 
       <form action={textAction} className="space-y-2">
         <input type="hidden" name="connectionId" value={connectionId} />

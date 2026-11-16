@@ -1,5 +1,7 @@
 # Lanterne
 
+[![CI](https://github.com/Cozzula-PIAN-Angelo/Lanterne-project/actions/workflows/ci.yml/badge.svg)](https://github.com/Cozzula-PIAN-Angelo/Lanterne-project/actions/workflows/ci.yml)
+
 Una PWA per restare vicini a poche persone: lasci una lanterna durante il giorno e arriva alla sera,
 all'orario che avete concordato, nell'ora locale di chi la riceve.
 
@@ -38,7 +40,9 @@ Per gli account nuovi, il magic link arriva su Mailpit: `http://localhost:8025`.
 
 In sviluppo, in fondo alle pagine c'è il pannello **Viaggio nel tempo**, per vedere le lanterne
 arrivare senza aspettare la sera. Sposta solo l'orologio delle pagine: il worker segue l'ora reale, quindi
-per provare una notifica serve una lanterna che arrivi davvero.
+per provare una notifica serve una lanterna che arrivi davvero. Nel canale, il pulsante **Fai arrivare adesso**
+fa arrivare subito le lanterne in attesa, in entrambe le direzioni: cambia il database, quindi anche il worker
+manda la notifica al giro successivo.
 
 ## Provare su Android
 

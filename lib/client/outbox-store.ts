@@ -67,9 +67,9 @@ export function isHeldInMemory(id: string) {
 export const OUTBOX_CHANGED = "lanterne:outbox-changed";
 
 /** Mette in coda e avvisa il pannello, che si occupa dell'invio. Non perde mai il file in silenzio. */
-export async function enqueue(input: Omit<OutboxItem, "id" | "status">) {
+export async function enqueue(input: Omit<OutboxItem, "id" | "status" | "queuedAt">) {
   // L'indice restituisce gli elementi in ordine di chiave: chi è registrato prima parte prima.
   const id = `${String(Date.now()).padStart(15, "0")}-${crypto.randomUUID()}`;
-  await outboxStore.put({ ...input, id, status: "waiting" });
+  await outboxStore.put({ ...input, id, status: "waiting", queuedAt: new Date(Date.now()).toISOString() });
   window.dispatchEvent(new Event(OUTBOX_CHANGED));
 }
